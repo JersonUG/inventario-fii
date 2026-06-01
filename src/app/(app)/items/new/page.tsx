@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Save } from 'lucide-react'
 import Link from 'next/link'
+import AutocompleteInput from '@/components/AutocompleteInput'
 import toast from 'react-hot-toast'
 
 export default function NewItemPage() {
@@ -36,23 +37,34 @@ export default function NewItemPage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/items" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft size={20} /></Link>
-        <h1 className="text-2xl font-bold text-gray-800">Nuevo Ítem</h1>
+        <div className="w-10 h-10 bg-gradient-to-br from-fii to-fii-light rounded-xl flex items-center justify-center shadow-lg shadow-fii/20">
+          <ArrowLeft className="text-white" size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Nuevo Ítem</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Registrar un nuevo activo patrimonial</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-4xl">
+      <form onSubmit={handleSubmit} className="card p-6 max-w-4xl">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[{label:'ITEM',key:'item',type:'number'},{label:'COD. INV',key:'cod_inv'},{label:'COD. ESBYE',key:'cod_esbye'},
-            {label:'CUENTA',key:'cuenta'},{label:'CANT',key:'cant',type:'number'},{label:'MARCA',key:'marca'},
-            {label:'MODELO',key:'modelo'},{label:'SERIE',key:'serie'},{label:'FECHA ADQ.',key:'fecha_adquisicion',type:'date'},
-            {label:'ESTADO',key:'estado'},{label:'VALOR ($)',key:'valor',type:'number',step:'0.01'},{label:'UBICACIÓN',key:'ubicacion'},
+            {label:'CUENTA',key:'cuenta'},{label:'CANT',key:'cant',type:'number'},{label:'MARCA',key:'marca',auto:true},
+            {label:'MODELO',key:'modelo',auto:true},{label:'SERIE',key:'serie'},{label:'FECHA ADQ.',key:'fecha_adquisicion',type:'date'},
+            {label:'ESTADO',key:'estado'},{label:'VALOR ($)',key:'valor',type:'number',step:'0.01'},{label:'UBICACIÓN',key:'ubicacion',auto:true},
             {label:'No. ACTA',key:'no_acta'},{label:'MES',key:'mes'}
           ].map(f => (
             <div key={f.key}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
-              <input type={f.type || 'text'} value={form[f.key as keyof typeof form] as string} step={f.step}
-                onChange={(e) => update(f.key, f.type === 'number' && f.step ? e.target.value : e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              {f.auto ? (
+                <AutocompleteInput label={f.label} value={form[f.key as keyof typeof form] as string} onChange={(v) => update(f.key, v)} column={f.key} />
+              ) : (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                  <input type={f.type || 'text'} value={form[f.key as keyof typeof form] as string} step={f.step}
+                    onChange={(e) => update(f.key, f.type === 'number' && f.step ? e.target.value : e.target.value)}
+                    className="input-field" />
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -60,19 +72,19 @@ export default function NewItemPage() {
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">DESCRIPCIÓN</label>
           <textarea value={form.descripcion} onChange={(e) => update('descripcion', e.target.value)} rows={3}
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            className="input-field" />
         </div>
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">OBSERVACIONES</label>
           <textarea value={form.observaciones} onChange={(e) => update('observaciones', e.target.value)} rows={2}
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            className="input-field" />
         </div>
 
         <div className="mt-6 flex gap-3">
-          <button type="submit" disabled={saving} className="flex items-center gap-2 bg-sky-600 text-white px-6 py-2.5 rounded-lg hover:bg-sky-700 disabled:opacity-50">
+          <button type="submit" disabled={saving} className="btn-primary !px-6 !py-2.5">
             <Save size={16} /> {saving ? 'Guardando...' : 'Guardar'}
           </button>
-          <Link href="/items" className="px-6 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</Link>
+          <Link href="/items" className="btn-secondary">Cancelar</Link>
         </div>
       </form>
     </div>

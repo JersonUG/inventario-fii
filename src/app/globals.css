@@ -14,6 +14,37 @@ body {
 
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: #f1f1f1; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #64748b; }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  .card-gradient {
+    @apply rounded-xl text-white shadow-lg relative overflow-hidden;
+  }
+  .btn-primary {
+    @apply flex items-center gap-2 bg-gradient-to-r from-fii to-fii-light text-white px-4 py-2 rounded-lg hover:from-fii-dark hover:to-fii transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md;
+  }
+  .btn-secondary {
+    @apply flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm font-medium text-gray-700;
+  }
+  .table-header {
+    @apply px-3 py-3 font-semibold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-ug to-fii;
+  }
+  .table-cell {
+    @apply px-3 py-3 text-xs;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-fii focus:border-fii outline-none transition-all duration-200 bg-white;
+  }
+  .badge {
+    @apply inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .filter-select {
+    @apply text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white capitalize hover:border-fii focus:border-fii focus:ring-1 focus:ring-fii outline-none transition-colors cursor-pointer;
+  }
 }

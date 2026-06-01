@@ -73,56 +73,67 @@ export default function NewActaPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href="/actas" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft size={20} /></Link>
-          <h1 className="text-2xl font-bold text-gray-800">Nueva Acta</h1>
+          <div className="w-10 h-10 bg-gradient-to-br from-fii to-fii-light rounded-xl flex items-center justify-center shadow-lg shadow-fii/20">
+            <ArrowLeft className="text-white" size={20} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Nueva Acta</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Crear y digitalizar un acta de inventario</p>
+          </div>
         </div>
-        <button onClick={generatePDF} className="flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-600 text-sm">
+        <button onClick={generatePDF} className="btn-primary !bg-gradient-to-r !from-fii !to-fii-light">
           <Download size={16} /> Generar PDF
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800 mb-2">Datos del Acta</h2>
+        <div className="card p-6 space-y-4">
+          <h2 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <span className="w-1 h-5 bg-fii rounded-full inline-block" />
+            Datos del Acta
+          </h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Acta</label>
             <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="Ej: ACTA #001 - LABORATORIO"
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              className="input-field" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
             <input type="date" value={form.fecha} onChange={(e) => update('fecha', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              className="input-field" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
             <input type="text" value={form.responsable} onChange={(e) => update('responsable', e.target.value)} placeholder="Nombre del responsable"
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              className="input-field" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
             <textarea value={form.notas} onChange={(e) => update('notas', e.target.value)} rows={3}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Observaciones..." />
+              className="input-field" placeholder="Observaciones..." />
           </div>
-          <button type="submit" disabled={saving} className="flex items-center gap-2 bg-sky-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-800 disabled:opacity-50">
+          <button type="submit" disabled={saving} className="btn-primary !px-6 !py-2.5">
             <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Acta'}
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800">Archivo Digitalizado</h2>
+        <div className="card p-6 space-y-4">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <span className="w-1 h-5 bg-fii rounded-full inline-block" />
+            Archivo Digitalizado
+          </h2>
           <p className="text-sm text-gray-500">Sube el PDF o imagen del acta escaneada (opcional)</p>
-          <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors">
+          <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/50 transition-all duration-200">
             <Upload className="mx-auto text-gray-400 mb-2" size={32} />
-            <p className="text-sm text-gray-500">{file ? file.name : 'Haz clic para subir un archivo'}</p>
-            <p className="text-xs text-gray-400 mt-1">PDF o JPG</p>
+            <p className="text-sm text-gray-500 font-medium">{file ? file.name : 'Haz clic para subir un archivo'}</p>
+            <p className="text-xs text-gray-400 mt-1">PDF o JPG — Máx 10MB</p>
             <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="hidden" />
           </div>
-          {preview && <img src={preview} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-gray-200" />}
+          {preview && <img src={preview} alt="Preview" className="w-full h-48 object-cover rounded-xl border border-gray-200 shadow-sm" />}
           {file && file.type === 'application/pdf' && (
-            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-              <FileText size={20} className="text-blue-600" />
-              <span className="text-sm text-blue-700">{file.name}</span>
+            <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-xl border border-violet-100">
+              <div className="p-2 bg-violet-100 rounded-lg"><FileText size={20} className="text-violet-600" /></div>
+              <span className="text-sm font-medium text-violet-700">{file.name}</span>
             </div>
           )}
         </div>

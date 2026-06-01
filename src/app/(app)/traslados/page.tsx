@@ -58,41 +58,52 @@ function TransferPageContent() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6"><ArrowLeftRight className="text-blue-900" size={24} /><h1 className="text-2xl font-bold text-gray-800">Traslados</h1></div>
+      <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-fii to-fii-light rounded-xl flex items-center justify-center shadow-lg shadow-fii/20">
+          <ArrowLeftRight className="text-white" size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Traslados</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Transferencia masiva de ubicación o responsable</p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="lg:col-span-2 card p-4">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar ítems..."
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar ítems por código, descripción o serie..."
+              className="input-field pl-9" />
           </div>
           <div className="overflow-y-auto max-h-[500px] space-y-1">
             {items.map((item: any) => (
-              <label key={item.id} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                selected.includes(item.id) ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'
+              <label key={item.id} className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
+                selected.includes(item.id) ? 'bg-emerald-50 border border-emerald-200 shadow-sm' : 'hover:bg-gray-50 border border-transparent'
               }`}>
-                <input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelect(item.id)} className="rounded" />
+                <input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelect(item.id)} className="rounded accent-emerald-600" />
                 <span className="text-xs font-mono text-gray-500 w-16">{item.item}</span>
-                <span className="text-sm flex-1 truncate">{item.descripcion}</span>
+                <span className="text-sm flex-1 truncate font-medium text-gray-800">{item.descripcion}</span>
                 <span className="text-xs text-gray-400 w-24 truncate">{item.ubicacion || '-'}</span>
               </label>
             ))}
             {!loading && items.length === 0 && <p className="text-center text-gray-400 py-8">Sin resultados</p>}
           </div>
-          <p className="text-sm text-gray-500 mt-2">{selected.length} seleccionado(s)</p>
+          <p className="text-sm text-gray-500 mt-3 font-medium">{selected.length} ítem(s) seleccionado(s)</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">Configurar Traslado</h2>
+        <div className="card p-6">
+          <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="w-1 h-5 bg-fii rounded-full inline-block" />
+            Configurar Traslado
+          </h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-              <div className="flex gap-2">
-                <button onClick={() => setTransferType('ubicacion')} className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
-                  transferType === 'ubicacion' ? 'bg-blue-900 text-white border-blue-900' : 'border-gray-200 hover:bg-gray-50'
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de traslado</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setTransferType('ubicacion')} className={`py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 ${
+                  transferType === 'ubicacion' ? 'bg-gradient-to-r from-fii to-fii-light text-white border-fii shadow-md' : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                 }`}>Ubicación</button>
-                <button onClick={() => setTransferType('propiedad')} className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
-                  transferType === 'propiedad' ? 'bg-blue-900 text-white border-blue-900' : 'border-gray-200 hover:bg-gray-50'
+                <button onClick={() => setTransferType('propiedad')} className={`py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 ${
+                  transferType === 'propiedad' ? 'bg-gradient-to-r from-fii to-fii-light text-white border-fii shadow-md' : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                 }`}>Propiedad</button>
               </div>
             </div>
@@ -100,23 +111,23 @@ function TransferPageContent() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nueva ubicación</label>
                 <input type="text" value={newLocation} onChange={(e) => setNewLocation(e.target.value)} placeholder="Ej: Edificio A, Piso 2"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                  className="input-field" />
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-gray-500">Nuevo responsable:</p>
+                <p className="text-sm text-gray-500 font-medium">Nuevo responsable:</p>
                 {['Laboratorio', 'Aula', 'Docente'].map(t => (
-                  <label key={t} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input type="radio" name="propietarioType" value={t} onChange={() => setNewPropietario(t)} className="accent-blue-900" />
-                    <span className="text-sm">{t}</span>
+                  <label key={t} className="flex items-center gap-2 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input type="radio" name="propietarioType" value={t} onChange={() => setNewPropietario(t)} className="accent-emerald-600" />
+                    <span className="text-sm font-medium text-gray-700">{t}</span>
                   </label>
                 ))}
                 <input type="text" value={newPropietario} onChange={(e) => setNewPropietario(e.target.value)} placeholder="Nombre del docente / aula"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none mt-2" />
+                  className="input-field mt-2" />
               </div>
             )}
             <button onClick={handleTransfer} disabled={saving || selected.length === 0}
-              className="w-full flex items-center justify-center gap-2 bg-sky-600 text-white py-2.5 rounded-lg hover:bg-sky-700 disabled:opacity-50 text-sm">
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-fii to-fii-light text-white py-2.5 rounded-xl hover:from-fii-dark hover:to-fii disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md hover:shadow-lg transition-all duration-200">
               <Save size={16} /> {saving ? 'Procesando...' : `Trasladar ${selected.length} ítem(s)`}
             </button>
           </div>
