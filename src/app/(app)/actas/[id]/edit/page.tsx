@@ -39,6 +39,7 @@ export default function EditActaPage() {
   const [preview, setPreview] = useState<string | null>(null)
   const [existingFileUrl, setExistingFileUrl] = useState('')
   const [existingFileType, setExistingFileType] = useState('')
+  const [actaNumero, setActaNumero] = useState('')
 
   const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [invCount, setInvCount] = useState(0)
@@ -61,6 +62,9 @@ export default function EditActaPage() {
       const { data: rels } = await supabase.from('acta_items').select('item_id').eq('acta_id', params.id)
       if (rels && rels.length > 0) {
         setSelectedIds(rels.map(r => r.item_id))
+      }
+      if (actaData.template_data?.NUMERO_ACTA) {
+        setActaNumero(actaData.template_data.NUMERO_ACTA)
       }
       setLoading(false)
     }
@@ -150,10 +154,27 @@ export default function EditActaPage() {
 
     if (toRemove.length > 0) {
       await supabase.from('acta_items').delete().eq('acta_id', params.id).in('item_id', toRemove)
+      await supabase.from('items').update({ no_acta: '' }).in('id', toRemove)
+      for (const itemId of toRemove) {
+        await supabase.from('item_history').insert([{
+          item_id: itemId, action: 'update',
+          changes: { no_acta: { old: `ACTA #${actaNumero}`, new: '' } },
+          user_id: user.id, user_name: user.email || 'Sistema',
+        }])
+      }
     }
     if (toAdd.length > 0) {
       const relations = toAdd.map(item_id => ({ acta_id: params.id, item_id }))
       await supabase.from('acta_items').insert(relations)
+      const noActaText = `ACTA #${actaNumero}`
+      await supabase.from('items').update({ no_acta: noActaText }).in('id', toAdd)
+      for (const itemId of toAdd) {
+        await supabase.from('item_history').insert([{
+          item_id: itemId, action: 'update',
+          changes: { no_acta: { old: null, new: noActaText } },
+          user_id: user.id, user_name: user.email || 'Sistema',
+        }])
+      }
     }
 
     const changes: Record<string, any> = {}

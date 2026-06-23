@@ -185,11 +185,23 @@ export default function NewActaPage() {
 
     if (actaError) { toast.error('Error al guardar acta: ' + actaError.message); setSaving(false); return }
 
-    // Save item relations
+    // Save item relations and update no_acta on items
     if (selectedIds.length > 0) {
       const relations = selectedIds.map(item_id => ({ acta_id: acta.id, item_id }))
       const { error: relError } = await supabase.from('acta_items').insert(relations)
       if (relError) { toast.error('Error al asociar activos'); setSaving(false); return }
+
+      const noActaText = `ACTA #${templateData.NUMERO_ACTA}`
+      const { error: upError } = await supabase.from('items').update({ no_acta: noActaText }).in('id', selectedIds)
+      if (upError) { toast.error('Error al actualizar No. ACTA en bienes'); setSaving(false); return }
+
+      for (const itemId of selectedIds) {
+        await supabase.from('item_history').insert([{
+          item_id: itemId, action: 'update',
+          changes: { no_acta: { old: null, new: noActaText } },
+          user_id: user.id, user_name: user.email || 'Sistema',
+        }])
+      }
     }
 
     // History
