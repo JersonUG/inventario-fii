@@ -12,6 +12,13 @@ body {
   color: var(--foreground);
 }
 
+.uppercase-mode, .uppercase-mode input, .uppercase-mode textarea, .uppercase-mode select {
+  text-transform: uppercase;
+}
+.uppercase-mode input::placeholder, .uppercase-mode textarea::placeholder {
+  text-transform: none;
+}
+
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }

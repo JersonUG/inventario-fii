@@ -6,19 +6,21 @@ import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Save } from 'lucide-react'
 import Link from 'next/link'
 import AutocompleteInput from '@/components/AutocompleteInput'
+import { CLASIFICACION_OPTIONS } from '@/types/database'
 import toast from 'react-hot-toast'
 
 export default function EditItemPage() {
   const params = useParams()
   const router = useRouter()
   const [form, setForm] = useState<any>({})
+  const [original, setOriginal] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     supabase.from('items').select('*').eq('id', params.id).single().then(({ data, error }) => {
       if (error || !data) { toast.error('Ítem no encontrado'); router.push('/items') }
-      else { setForm(data); setLoading(false) }
+      else { setForm(data); setOriginal(data); setLoading(false) }
     })
   }, [params.id, router])
 
@@ -30,9 +32,29 @@ export default function EditItemPage() {
     const user = (await supabase.auth.getUser()).data.user
     if (!user) { toast.error('Debes iniciar sesión'); setSaving(false); return }
 
+    const changedFields: Record<string, any> = {}
+    const trackedFields = ['cod_inv','cod_esbye','cuenta','cant','descripcion','marca','modelo','serie','fecha_adquisicion','estado','valor','ubicacion','observaciones','no_acta','mes','clasificacion_activo']
+    trackedFields.forEach(f => {
+      if (String(form[f] ?? '') !== String(original[f] ?? '')) {
+        changedFields[f] = { old: original[f], new: form[f] }
+      }
+    })
+
     const { error } = await supabase.from('items').update({ ...form, valor: form.valor ? parseFloat(form.valor) : null }).eq('id', params.id)
-    if (error) { toast.error('Error al actualizar'); setSaving(false) }
-    else { toast.success('Ítem actualizado'); router.push('/items') }
+    if (error) { toast.error('Error al actualizar'); setSaving(false); return }
+
+    if (Object.keys(changedFields).length > 0) {
+      await supabase.from('item_history').insert([{
+        item_id: params.id,
+        action: 'update',
+        changes: changedFields,
+        user_id: user.id,
+        user_name: user.email || 'Sistema',
+      }])
+    }
+
+    toast.success('Ítem actualizado')
+    router.push(`/items/${params.id}`)
   }
 
   if (loading) return <div className="text-center py-12 text-gray-500">Cargando...</div>
@@ -40,9 +62,9 @@ export default function EditItemPage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-10 h-10 bg-gradient-to-br from-fii to-fii-light rounded-xl flex items-center justify-center shadow-lg shadow-fii/20">
+        <button type="button" onClick={() => router.back()} className="w-10 h-10 bg-gradient-to-br from-fii to-fii-light rounded-xl flex items-center justify-center shadow-lg shadow-fii/20 hover:shadow-xl transition-shadow cursor-pointer">
           <ArrowLeft className="text-white" size={20} />
-        </div>
+        </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Editar Ítem #{form.item}</h1>
           <p className="text-sm text-gray-500 mt-0.5">Modificar datos del activo patrimonial</p>
@@ -54,12 +76,21 @@ export default function EditItemPage() {
           {[{label:'ITEM',key:'item',type:'number'},{label:'COD. INV',key:'cod_inv'},{label:'COD. ESBYE',key:'cod_esbye'},
             {label:'CUENTA',key:'cuenta'},{label:'CANT',key:'cant',type:'number'},{label:'MARCA',key:'marca',auto:true},
             {label:'MODELO',key:'modelo',auto:true},{label:'SERIE',key:'serie'},{label:'FECHA ADQ.',key:'fecha_adquisicion',type:'date'},
-            {label:'ESTADO',key:'estado'},{label:'VALOR ($)',key:'valor',type:'number',step:'0.01'},{label:'UBICACIÓN',key:'ubicacion',auto:true},
-            {label:'No. ACTA',key:'no_acta'},{label:'MES',key:'mes'}
+            {label:'ESTADO',key:'estado'},{label:'CLASIFICACIÓN',key:'clasificacion_activo',select:true},{label:'VALOR ($)',key:'valor',type:'number',step:'0.01'},{label:'UBICACIÓN',key:'ubicacion',auto:true},
+            {label:'No. ACTA',key:'no_acta'},{label:'COLORES / NOTAS',key:'mes'}
           ].map(f => (
             <div key={f.key}>
               {f.auto ? (
                 <AutocompleteInput label={f.label} value={form[f.key] ?? ''} onChange={(v) => update(f.key, v)} column={f.key} />
+              ) : f.select ? (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                  <select value={form[f.key] ?? 'ACTIVO'} onChange={(e) => update(f.key, e.target.value)} className="input-field">
+                    {CLASIFICACION_OPTIONS.map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </>
               ) : (
                 <>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
@@ -86,7 +117,7 @@ export default function EditItemPage() {
           <button type="submit" disabled={saving} className="btn-primary !px-6 !py-2.5">
             <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
-          <Link href="/items" className="btn-secondary">Cancelar</Link>
+          <Link href={`/items/${params.id}`} className="btn-secondary">Cancelar</Link>
         </div>
       </form>
     </div>

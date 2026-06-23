@@ -2,15 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ArrowLeftRight, History, FileText, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Package, ArrowLeftRight, History, FileText, LogOut, Menu, X, SearchX, AlertTriangle, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/items', label: 'Inventario', icon: Package },
+  { href: '/items', label: 'Inventario General', icon: Package },
+  { href: '/items?clasificacion=DADO_DE_BAJA', label: 'Dados de Baja', icon: Trash2 },
+  { href: '/no-localizados', label: 'No Localizados', icon: SearchX },
+  { href: '/items?clasificacion=PROXIMO_A_BAJA', label: 'Próximos a Baja', icon: AlertTriangle },
   { href: '/traslados', label: 'Traslados', icon: ArrowLeftRight },
-  { href: '/historial', label: 'Historial', icon: History },
   { href: '/actas', label: 'Actas', icon: FileText },
+  { href: '/historial', label: 'Historial', icon: History },
 ]
 
 export default function Sidebar({ userEmail, onLogout }: { userEmail?: string; onLogout: () => void }) {

@@ -22,7 +22,7 @@ function TransferPageContent() {
   useEffect(() => {
     const load = async () => {
       setLoading(true)
-      let query = supabase.from('items').select('*').eq('is_active', true).order('item', { ascending: true }).limit(200)
+      let query = supabase.from('items').select('*').eq('clasificacion_activo', 'ACTIVO').order('item', { ascending: true }).limit(200)
       if (searchTerm) query = query.or(`cod_inv.ilike.%${searchTerm}%,descripcion.ilike.%${searchTerm}%,serie.ilike.%${searchTerm}%`)
       const { data } = await query
       if (data) setItems(data)
@@ -48,12 +48,22 @@ function TransferPageContent() {
     const user = (await supabase.auth.getUser()).data.user
     if (!user) { toast.error('Debes iniciar sesión'); setSaving(false); return }
 
+    const selectedItems = items.filter(i => selected.includes(i.id))
+
     const { error } = await supabase.from('items').update(updates).in('id', selected)
-    if (error) { toast.error('Error en traslado'); setSaving(false) }
-    else {
-      toast.success(`Traslado realizado: ${selected.length} ítem(s) actualizado(s)`)
-      setSelected([]); setNewLocation(''); setNewPropietario(''); setSaving(false)
-    }
+    if (error) { toast.error('Error en traslado'); setSaving(false); return }
+
+    const historyEntries = selectedItems.map(item => ({
+      item_id: item.id,
+      action: 'transfer',
+      changes: { ubicacion: { old: item.ubicacion, new: updates.ubicacion } },
+      user_id: user.id,
+      user_name: user.email || 'Sistema',
+    }))
+    await supabase.from('item_history').insert(historyEntries)
+
+    toast.success(`Traslado realizado: ${selected.length} ítem(s) actualizado(s)`)
+    setSelected([]); setNewLocation(''); setNewPropietario(''); setSaving(false)
   }
 
   return (

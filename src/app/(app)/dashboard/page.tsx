@@ -3,19 +3,21 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { Package, FileText, AlertTriangle, TrendingUp, Plus, ArrowRightLeft, FilePlus } from 'lucide-react'
+import { Package, FileText, AlertTriangle, TrendingUp, Plus, ArrowRightLeft, FilePlus, SearchX } from 'lucide-react'
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ total: 0, activos: 0, bajas: 0, actas: 0 })
+  const [stats, setStats] = useState({ total: 0, activos: 0, bajas: 0, actas: 0, paraBaja: 0, noLocalizados: 0 })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       const { count: total } = await supabase.from('items').select('*', { count: 'exact', head: true })
-      const { count: activos } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('is_active', true)
-      const { count: bajas } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('is_active', false)
+      const { count: activos } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'ACTIVO')
+      const { count: bajas } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'DADO_DE_BAJA')
       const { count: actas } = await supabase.from('actas').select('*', { count: 'exact', head: true })
-      setStats({ total: total || 0, activos: activos || 0, bajas: bajas || 0, actas: actas || 0 })
+      const { count: paraBaja } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'PROXIMO_A_BAJA')
+      const { count: noLocalizados } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'NO_LOCALIZADO')
+      setStats({ total: total || 0, activos: activos || 0, bajas: bajas || 0, actas: actas || 0, paraBaja: paraBaja || 0, noLocalizados: noLocalizados || 0 })
       setLoading(false)
     }
     load()
@@ -23,9 +25,11 @@ export default function DashboardPage() {
 
   const cards = [
     { label: 'Total Registros', value: stats.total, icon: Package, from: 'from-fii', to: 'to-fii-dark', href: '/items' },
-    { label: 'Activos', value: stats.activos, icon: TrendingUp, from: 'from-emerald-500', to: 'to-green-700', href: '/items' },
-    { label: 'Dados de Baja', value: stats.bajas, icon: AlertTriangle, from: 'from-amber-500', to: 'to-orange-700', href: '/items?bajas=true' },
+    { label: 'Activos', value: stats.activos, icon: TrendingUp, from: 'from-emerald-500', to: 'to-green-700', href: '/items?clasificacion=ACTIVO' },
+    { label: 'Dados de Baja', value: stats.bajas, icon: AlertTriangle, from: 'from-amber-500', to: 'to-orange-700', href: '/items?clasificacion=DADO_DE_BAJA' },
     { label: 'Actas Digitalizadas', value: stats.actas, icon: FileText, from: 'from-violet-500', to: 'to-purple-700', href: '/actas' },
+    { label: 'Próximos a Baja', value: stats.paraBaja, icon: AlertTriangle, from: 'from-red-500', to: 'to-red-700', href: '/items?clasificacion=PROXIMO_A_BAJA' },
+    { label: 'No Localizados', value: stats.noLocalizados, icon: SearchX, from: 'from-orange-500', to: 'to-orange-700', href: '/no-localizados' },
   ]
 
   return (
@@ -41,14 +45,16 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {cards.map(({ label, value, icon: Icon, from, to, href }) => (
           <Link key={label} href={href} className={`card-gradient bg-gradient-to-br ${from} ${to} p-[1px]`}>
             <div className="bg-white/95 backdrop-blur rounded-[11px] p-5 h-full hover:bg-white/90 transition-colors">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">{label}</p>
-                  <p className="text-3xl font-bold text-gray-800 mt-1.5">{loading ? <span className="inline-block w-16 h-8 bg-gray-200 animate-pulse rounded" /> : value.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-gray-800 mt-1.5">
+                    {loading ? <span className="inline-block w-16 h-8 bg-gray-200 animate-pulse rounded" /> : value.toLocaleString()}
+                  </p>
                 </div>
                 <div className={`bg-gradient-to-br ${from} ${to} p-3 rounded-xl shadow-lg`}>
                   <Icon className="w-6 h-6 text-white" />

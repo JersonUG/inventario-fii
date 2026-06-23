@@ -7,7 +7,7 @@ import Sidebar from '@/components/Sidebar'
 import BrandHeader from '@/components/BrandHeader'
 import { ArrowLeft } from 'lucide-react'
 
-const MAIN_PAGES = ['/dashboard', '/items', '/actas', '/historial', '/traslados']
+const MAIN_PAGES = ['/dashboard', '/items', '/actas', '/historial', '/traslados', '/no-localizados']
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null)
@@ -28,7 +28,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 uppercase-mode">
       <Sidebar userEmail={user.email} onLogout={() => { supabase.auth.signOut(); router.push('/login') }} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <BrandHeader />

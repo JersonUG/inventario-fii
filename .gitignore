@@ -3,3 +3,11 @@ node_modules/
 .env.local
 .env
 *.log
+tmp-*
+tmp_*
+*.tsbuildinfo
+*.xlsx
+inventario-fii@0.1.0
+next
+npm
+.summary.md

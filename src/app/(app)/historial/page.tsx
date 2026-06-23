@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { History, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { History, FileText, ArrowLeftRight, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+
+type Tab = 'items' | 'actas' | 'traslados'
 
 export default function HistoryPage() {
+  const [tab, setTab] = useState<Tab>('items')
   const [entries, setEntries] = useState<any[]>([])
   const [count, setCount] = useState(0)
   const [page, setPage] = useState(1)
@@ -15,15 +18,30 @@ export default function HistoryPage() {
   useEffect(() => {
     const load = async () => {
       setLoading(true)
-      let query = supabase.from('item_history').select('*', { count: 'exact' }).order('created_at', { ascending: false })
-      if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%`)
+      let query: any
+      if (tab === 'items') {
+        query = supabase.from('item_history').select('*', { count: 'exact' }).order('created_at', { ascending: false })
+        if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%`)
+      } else if (tab === 'actas') {
+        query = supabase.from('acta_history').select('*,actas(name)', { count: 'exact' }).order('created_at', { ascending: false })
+        if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%,actas.name.ilike.%${search}%`)
+      } else {
+        query = supabase.from('transfer_log').select('*,items(item,descripcion)', { count: 'exact' }).order('created_at', { ascending: false })
+        if (search) query = query.or(`user_name.ilike.%${search}%,transfer_type.ilike.%${search}%,from_value.ilike.%${search}%,to_value.ilike.%${search}%`)
+      }
       const from = (page - 1) * 50
       const { data, count: total, error } = await query.range(from, from + 49)
       if (!error) { setEntries(data || []); setCount(total || 0) }
       setLoading(false)
     }
     load()
-  }, [page, search])
+  }, [tab, page, search])
+
+  const tabs: { key: Tab; label: string; icon: any }[] = [
+    { key: 'items', label: 'Ítems', icon: History },
+    { key: 'actas', label: 'Actas', icon: FileText },
+    { key: 'traslados', label: 'Traslados', icon: ArrowLeftRight },
+  ]
 
   const actionColors: Record<string, string> = {
     create: 'bg-green-100 text-green-700', update: 'bg-blue-100 text-blue-700',
@@ -34,7 +52,7 @@ export default function HistoryPage() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-fii to-fii-light rounded-xl flex items-center justify-center shadow-lg shadow-fii/20">
+        <div className="w-10 h-10 bg-gradient-to-br from-fii to-fii-light rounded-xl flex items-center justify-center shadow-lg shadow-fii/20">
           <History className="text-white" size={20} />
         </div>
         <div>
@@ -43,10 +61,26 @@ export default function HistoryPage() {
         </div>
       </div>
       <div className="card">
-        <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex px-4 pt-2 gap-1">
+            {tabs.map(t => {
+              const Icon = t.icon
+              return (
+                <button key={t.key} onClick={() => { setTab(t.key); setPage(1); setSearch('') }}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
+                    tab === t.key ? 'bg-white text-fii border-t border-x border-gray-200 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+                  }`}
+                >
+                  <Icon size={16} /> {t.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className="p-4 border-b border-gray-100">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} placeholder="Buscar por usuario o acción..."
+            <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} placeholder="Buscar..."
               className="input-field pl-9" />
           </div>
         </div>
@@ -55,27 +89,47 @@ export default function HistoryPage() {
             <thead>
               <tr className="bg-gradient-to-r from-ug to-fii text-left">
                 <th className="table-header">FECHA</th>
+                {tab === 'traslados' && <th className="table-header">ITEM</th>}
+                {tab === 'actas' && <th className="table-header">ACTA</th>}
                 <th className="table-header">ACCIÓN</th>
                 <th className="table-header">USUARIO</th>
                 <th className="table-header">DETALLE</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan={4} className="p-8 text-center text-gray-500">Cargando...</td></tr>
-              : entries.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-gray-500">Sin registros</td></tr>
+              {loading ? <tr><td colSpan={tab === 'items' ? 4 : 5} className="p-8 text-center text-gray-500">Cargando...</td></tr>
+              : entries.length === 0 ? <tr><td colSpan={tab === 'items' ? 4 : 5} className="p-8 text-center text-gray-500">Sin registros</td></tr>
               : entries.map((entry: any, idx: number) => (
                 <tr key={entry.id} className={`border-t border-gray-100 hover:bg-sky-50/50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                   <td className="table-cell text-gray-500 whitespace-nowrap">{new Date(entry.created_at).toLocaleString('es-ES')}</td>
+                  {tab === 'traslados' && (
+                    <td className="table-cell font-mono text-xs">
+                      {entry.items ? `#${entry.items.item} - ${entry.items.descripcion?.substring(0, 50)}...` : '—'}
+                    </td>
+                  )}
+                  {tab === 'actas' && (
+                    <td className="table-cell font-medium">{entry.actas?.name || '—'}</td>
+                  )}
                   <td className="table-cell">
-                    <span className={`badge capitalize ${actionColors[entry.action] || 'bg-gray-100 text-gray-600'}`}>
-                      {entry.action === 'baja' ? 'Dar de baja' : entry.action}
+                    <span className={`badge capitalize ${actionColors[entry.action || entry.transfer_type] || 'bg-gray-100 text-gray-600'}`}>
+                      {tab === 'traslados' ? entry.transfer_type : entry.action === 'baja' ? 'Dar de baja' : entry.action}
                     </span>
                   </td>
                   <td className="table-cell">{entry.user_name || entry.user_id || 'Sistema'}</td>
                   <td className="table-cell text-gray-600 max-w-md truncate">
-                    {entry.action === 'create' ? 'Ítem creado' : entry.action === 'baja' ? 'Ítem dado de baja'
-                    : entry.action === 'delete' ? 'Ítem eliminado' : entry.action === 'transfer' ? 'Traslado'
-                    : entry.action === 'update' ? 'Ítem modificado' : JSON.stringify(entry.changes)}
+                    {tab === 'items' ? (
+                      entry.action === 'create' ? 'Ítem creado' : entry.action === 'baja' ? 'Ítem dado de baja'
+                      : entry.action === 'delete' ? 'Ítem eliminado' : entry.action === 'transfer' ? 'Traslado'
+                      : entry.action === 'update' ? 'Ítem modificado' : JSON.stringify(entry.changes)
+                    ) : tab === 'actas' ? (
+                      entry.action === 'create' ? 'Acta creada' : entry.action === 'update' ? 'Acta modificada'
+                      : entry.action === 'add_item' ? `Activo agregado` : entry.action === 'remove_item' ? `Activo removido`
+                      : JSON.stringify(entry.changes)
+                    ) : (
+                      entry.transfer_type === 'ubicacion' ? `Ubicación: ${entry.from_value || '—'} → ${entry.to_value || '—'}`
+                      : entry.transfer_type === 'responsable' ? `Responsable: ${entry.from_value || '—'} → ${entry.to_value || '—'}`
+                      : `${entry.from_value || '—'} → ${entry.to_value || '—'}`
+                    )}
                   </td>
                 </tr>
               ))}
