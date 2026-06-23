@@ -23,10 +23,6 @@ export default function NewItemPage() {
   })
 
   useEffect(() => {
-    if (profile && profile.rol === 'CONSULTA') router.push('/items')
-  }, [profile, router])
-
-  useEffect(() => {
     supabase.from('items').select('item').order('item', { ascending: false }).limit(1).maybeSingle().then(({ data, error }) => {
       const maxItem = (!error && data?.item) ? data.item : 0
       setForm(prev => ({ ...prev, item: maxItem + 1 }))
@@ -56,6 +52,9 @@ export default function NewItemPage() {
 
     toast.success('Ítem creado'); router.push('/items')
   }
+
+  if (!profile) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fii"></div></div>
+  if (profile.rol === 'CONSULTA') { router.replace('/items'); return null }
 
   return (
     <div>

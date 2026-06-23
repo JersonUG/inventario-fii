@@ -37,10 +37,6 @@ export default function NewActaPage() {
   const { profile } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (profile && profile.rol === 'CONSULTA') router.push('/actas')
-  }, [profile, router])
-
   const [saving, setSaving] = useState(false)
   const [tipo, setTipo] = useState<ActaTipo | ''>('')
   const [templateData, setTemplateData] = useState<Record<string, string>>({})
@@ -219,6 +215,9 @@ export default function NewActaPage() {
   }
 
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('es-ES') : '-'
+
+  if (!profile) return <div className="min-h-[400px] flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fii"></div></div>
+  if (profile.rol === 'CONSULTA') { router.replace('/actas'); return null }
 
   return (
     <div>

@@ -11,7 +11,7 @@ function TransferPageContent() {
   const { profile } = useAuth()
   const searchParams = useSearchParams()
   const preselectedIds = searchParams.get('ids')?.split(',').filter(Boolean) || []
-  const canEdit = profile?.rol !== 'CONSULTA'
+  const canEdit = profile?.rol === 'ADMINISTRADOR' || profile?.rol === 'OPERADOR'
 
   const [items, setItems] = useState<any[]>([])
   const [selected, setSelected] = useState<string[]>(preselectedIds)

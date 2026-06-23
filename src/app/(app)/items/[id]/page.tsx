@@ -12,7 +12,7 @@ export default function ItemDetailPage() {
   const { profile } = useAuth()
   const params = useParams()
   const router = useRouter()
-  const canEdit = profile?.rol !== 'CONSULTA'
+  const canEdit = profile?.rol === 'ADMINISTRADOR' || profile?.rol === 'OPERADOR'
   const [item, setItem] = useState<any>(null)
   const [history, setHistory] = useState<any[]>([])
   const [actas, setActas] = useState<any[]>([])

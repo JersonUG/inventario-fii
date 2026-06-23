@@ -23,7 +23,7 @@ interface Acta {
 
 export default function ActasPage() {
   const { profile } = useAuth()
-  const canEdit = profile?.rol !== 'CONSULTA'
+  const canEdit = profile?.rol === 'ADMINISTRADOR' || profile?.rol === 'OPERADOR'
   const [actas, setActas] = useState<Acta[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')

@@ -20,10 +20,6 @@ export default function EditItemPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (profile && profile.rol === 'CONSULTA') router.push('/items')
-  }, [profile, router])
-
-  useEffect(() => {
     supabase.from('items').select('*').eq('id', params.id).single().then(({ data, error }) => {
       if (error || !data) { toast.error('Ítem no encontrado'); router.push('/items') }
       else { setForm(data); setOriginal(data); setLoading(false) }
@@ -62,6 +58,9 @@ export default function EditItemPage() {
     toast.success('Ítem actualizado')
     router.push(`/items/${params.id}`)
   }
+
+  if (!profile) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fii"></div></div>
+  if (profile.rol === 'CONSULTA') { router.replace('/items'); return null }
 
   if (loading) return <div className="text-center py-12 text-gray-500">Cargando...</div>
 

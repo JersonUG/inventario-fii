@@ -30,10 +30,6 @@ export default function EditActaPage() {
   const params = useParams()
   const router = useRouter()
 
-  useEffect(() => {
-    if (profile && profile.rol === 'CONSULTA') router.push('/actas/' + params.id)
-  }, [profile, router, params.id])
-
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -183,6 +179,9 @@ export default function EditActaPage() {
 
   const formatValor = (v: number | null) => v != null ? `$${v.toFixed(2)}` : '-'
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('es-ES') : '-'
+
+  if (!profile) return <div className="min-h-[400px] flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fii"></div></div>
+  if (profile.rol === 'CONSULTA') { router.replace('/actas/' + params.id); return null }
 
   if (loading) return <div className="text-center py-12 text-gray-500">Cargando...</div>
 

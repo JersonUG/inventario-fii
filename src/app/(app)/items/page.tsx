@@ -16,7 +16,7 @@ function ItemsPageContent() {
   const { profile } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const canEdit = profile?.rol !== 'CONSULTA'
+  const canEdit = profile?.rol === 'ADMINISTRADOR' || profile?.rol === 'OPERADOR'
   const [items, setItems] = useState<any[]>([])
   const [count, setCount] = useState(0)
   const [page, setPage] = useState(1)
