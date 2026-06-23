@@ -223,6 +223,11 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
           ⚠️ Vista previa — el PDF final se generará al guardar
         </div>
       )}
+
+      <div style={{ width: '20.99cm', height: '2.01cm', margin: '0 auto' }}>
+        <img src="/images/pie-pagina.jpg" alt=""
+          style={{ width: '100%', height: '100%', display: 'block' }} />
+      </div>
     </div>
   )
 }
