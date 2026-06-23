@@ -60,7 +60,17 @@ export default function ActaDetailPage() {
 
   const handleDelete = async () => {
     if (!confirm('¿Eliminar esta acta? También se eliminarán las asociaciones con activos.')) return
-    await supabase.from('actas').delete().eq('id', params.id)
+    const { data: acta } = await supabase.from('actas').select('name,tipo').eq('id', params.id).single()
+    const user = (await supabase.auth.getUser()).data.user
+    const { error } = await supabase.from('actas').delete().eq('id', params.id)
+    if (error) { toast.error('Error al eliminar'); return }
+    if (user && acta) {
+      await supabase.from('acta_history').insert([{
+        acta_id: params.id, action: 'delete',
+        changes: { name: acta.name, tipo: acta.tipo },
+        user_id: user.id, user_name: user.email || 'Sistema',
+      }])
+    }
     toast.success('Acta eliminada')
     router.push('/actas')
   }

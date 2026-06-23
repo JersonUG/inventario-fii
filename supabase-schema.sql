@@ -158,3 +158,16 @@ CREATE POLICY "Allow auth insert acta_history" ON acta_history FOR INSERT WITH C
 ALTER TABLE transfer_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all read transfer_log" ON transfer_log FOR SELECT USING (true);
 CREATE POLICY "Allow auth insert transfer_log" ON transfer_log FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Auth log table for login/logout tracking
+CREATE TABLE IF NOT EXISTS auth_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  user_name TEXT DEFAULT '',
+  action TEXT NOT NULL CHECK (action IN ('login', 'logout')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE auth_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all read auth_log" ON auth_log FOR SELECT USING (true);
+CREATE POLICY "Allow auth insert auth_log" ON auth_log FOR INSERT WITH CHECK (auth.role() = 'authenticated');

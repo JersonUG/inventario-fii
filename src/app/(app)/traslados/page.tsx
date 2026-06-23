@@ -62,6 +62,14 @@ function TransferPageContent() {
     }))
     await supabase.from('item_history').insert(historyEntries)
 
+    await supabase.from('transfer_log').insert(
+      selectedItems.map(item => ({
+        item_id: item.id, user_id: user.id, user_name: user.email || 'Sistema',
+        transfer_type: transferType,
+        from_value: item.ubicacion || '', to_value: updates.ubicacion || '',
+      }))
+    )
+
     toast.success(`Traslado realizado: ${selected.length} ítem(s) actualizado(s)`)
     setSelected([]); setNewLocation(''); setNewPropietario(''); setSaving(false)
   }

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { History, FileText, ArrowLeftRight, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { History, FileText, ArrowLeftRight, LogIn, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
-type Tab = 'items' | 'actas' | 'traslados'
+type Tab = 'items' | 'actas' | 'traslados' | 'auth'
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<Tab>('items')
@@ -25,9 +25,12 @@ export default function HistoryPage() {
       } else if (tab === 'actas') {
         query = supabase.from('acta_history').select('*,actas(name)', { count: 'exact' }).order('created_at', { ascending: false })
         if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%,actas.name.ilike.%${search}%`)
-      } else {
+      } else if (tab === 'traslados') {
         query = supabase.from('transfer_log').select('*,items(item,descripcion)', { count: 'exact' }).order('created_at', { ascending: false })
         if (search) query = query.or(`user_name.ilike.%${search}%,transfer_type.ilike.%${search}%,from_value.ilike.%${search}%,to_value.ilike.%${search}%`)
+      } else {
+        query = supabase.from('auth_log').select('*', { count: 'exact' }).order('created_at', { ascending: false })
+        if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%`)
       }
       const from = (page - 1) * 50
       const { data, count: total, error } = await query.range(from, from + 49)
@@ -41,12 +44,14 @@ export default function HistoryPage() {
     { key: 'items', label: 'Ítems', icon: History },
     { key: 'actas', label: 'Actas', icon: FileText },
     { key: 'traslados', label: 'Traslados', icon: ArrowLeftRight },
+    { key: 'auth', label: 'Accesos', icon: LogIn },
   ]
 
   const actionColors: Record<string, string> = {
     create: 'bg-green-100 text-green-700', update: 'bg-blue-100 text-blue-700',
     baja: 'bg-orange-100 text-orange-700', delete: 'bg-red-100 text-red-700',
-    transfer: 'bg-purple-100 text-purple-700',
+    transfer: 'bg-purple-100 text-purple-700', reincorporar: 'bg-teal-100 text-teal-700',
+    login: 'bg-emerald-100 text-emerald-700', logout: 'bg-rose-100 text-rose-700',
   }
 
   return (
@@ -97,8 +102,8 @@ export default function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan={tab === 'items' ? 4 : 5} className="p-8 text-center text-gray-500">Cargando...</td></tr>
-              : entries.length === 0 ? <tr><td colSpan={tab === 'items' ? 4 : 5} className="p-8 text-center text-gray-500">Sin registros</td></tr>
+              {loading ? <tr><td colSpan={tab !== 'actas' && tab !== 'traslados' ? 4 : 5} className="p-8 text-center text-gray-500">Cargando...</td></tr>
+              : entries.length === 0 ? <tr><td colSpan={tab !== 'actas' && tab !== 'traslados' ? 4 : 5} className="p-8 text-center text-gray-500">Sin registros</td></tr>
               : entries.map((entry: any, idx: number) => (
                 <tr key={entry.id} className={`border-t border-gray-100 hover:bg-sky-50/50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                   <td className="table-cell text-gray-500 whitespace-nowrap">{new Date(entry.created_at).toLocaleString('es-ES')}</td>
@@ -120,11 +125,15 @@ export default function HistoryPage() {
                     {tab === 'items' ? (
                       entry.action === 'create' ? 'Ítem creado' : entry.action === 'baja' ? 'Ítem dado de baja'
                       : entry.action === 'delete' ? 'Ítem eliminado' : entry.action === 'transfer' ? 'Traslado'
-                      : entry.action === 'update' ? 'Ítem modificado' : JSON.stringify(entry.changes)
+                      : entry.action === 'update' ? 'Ítem modificado'                       : entry.action === 'reincorporar' ? 'Reincorporado al inventario'
+                      : JSON.stringify(entry.changes)
                     ) : tab === 'actas' ? (
                       entry.action === 'create' ? 'Acta creada' : entry.action === 'update' ? 'Acta modificada'
                       : entry.action === 'add_item' ? `Activo agregado` : entry.action === 'remove_item' ? `Activo removido`
+                      : entry.action === 'delete' ? 'Acta eliminada'
                       : JSON.stringify(entry.changes)
+                    ) : tab === 'auth' ? (
+                      entry.action === 'login' ? 'Inicio de sesión' : 'Cierre de sesión'
                     ) : (
                       entry.transfer_type === 'ubicacion' ? `Ubicación: ${entry.from_value || '—'} → ${entry.to_value || '—'}`
                       : entry.transfer_type === 'responsable' ? `Responsable: ${entry.from_value || '—'} → ${entry.to_value || '—'}`

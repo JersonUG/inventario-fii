@@ -14,8 +14,14 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { toast.error(error.message); setLoading(false); return }
+    if (data.user) {
+      await supabase.from('auth_log').insert([{
+        user_id: data.user.id, user_name: data.user.email || email,
+        action: 'login',
+      }])
+    }
     toast.success('Inicio de sesión exitoso')
     router.push('/dashboard')
   }

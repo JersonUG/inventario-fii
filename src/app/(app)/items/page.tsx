@@ -95,7 +95,18 @@ function ItemsPageContent() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar permanentemente? No se puede deshacer.')) return
-    await supabase.from('items').delete().eq('id', id)
+    const { data: item } = await supabase.from('items').select('item,descripcion').eq('id', id).single()
+    if (!item) { toast.error('Ítem no encontrado'); return }
+    const user = (await supabase.auth.getUser()).data.user
+    const { error } = await supabase.from('items').delete().eq('id', id)
+    if (error) { toast.error('Error: ' + error.message); return }
+    if (user) {
+      await supabase.from('item_history').insert([{
+        item_id: id, action: 'delete',
+        changes: { item: { old: item.item }, descripcion: { old: item.descripcion } },
+        user_id: user.id, user_name: user.email || 'Sistema',
+      }])
+    }
     toast.success('Ítem eliminado'); loadItems()
   }
 

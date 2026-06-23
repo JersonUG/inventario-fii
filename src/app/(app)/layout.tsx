@@ -29,7 +29,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gray-50 uppercase-mode">
-      <Sidebar userEmail={user.email} onLogout={() => { supabase.auth.signOut(); router.push('/login') }} />
+      <Sidebar userEmail={user.email} onLogout={async () => {
+        await supabase.from('auth_log').insert([{
+          user_id: user.id, user_name: user.email || 'Sistema',
+          action: 'logout',
+        }])
+        await supabase.auth.signOut()
+        router.push('/login')
+      }} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <BrandHeader />
         <div className="flex items-center gap-2 px-6 py-2 bg-white border-b border-gray-100 shadow-sm">

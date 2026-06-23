@@ -41,8 +41,17 @@ export default function ActasPage() {
   useEffect(() => { loadActas() }, [loadActas])
 
   const handleDelete = async (id: string) => {
+    const { data: acta } = await supabase.from('actas').select('name,tipo').eq('id', id).single()
+    const user = (await supabase.auth.getUser()).data.user
     const { error } = await supabase.from('actas').delete().eq('id', id)
     if (error) { toast.error('Error al eliminar'); return }
+    if (user && acta) {
+      await supabase.from('acta_history').insert([{
+        acta_id: id, action: 'delete',
+        changes: { name: acta.name, tipo: acta.tipo },
+        user_id: user.id, user_name: user.email || 'Sistema',
+      }])
+    }
     toast.success('Acta eliminada')
     setDeleteConfirm(null)
     loadActas()

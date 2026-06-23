@@ -36,13 +36,19 @@ export default function NewItemPage() {
     const user = (await supabase.auth.getUser()).data.user
     if (!user) { toast.error('Debes iniciar sesión'); setSaving(false); return }
 
-    const { error } = await supabase.from('items').insert([{
+    const { data: newItem, error } = await supabase.from('items').insert([{
       ...form, valor: form.valor ? parseFloat(form.valor) : null,
       fecha_adquisicion: form.fecha_adquisicion || null, cant: parseInt(form.cant.toString()) || 1
+    }]).select('id,item').single()
+
+    if (error) { toast.error('Error: ' + error.message); setSaving(false); return }
+
+    await supabase.from('item_history').insert([{
+      item_id: newItem.id, action: 'create', changes: { item: { new: newItem.item }, descripcion: { new: form.descripcion } },
+      user_id: user.id, user_name: user.email || 'Sistema',
     }])
 
-    if (error) { toast.error('Error: ' + error.message); setSaving(false) }
-    else { toast.success('Ítem creado'); router.push('/items') }
+    toast.success('Ítem creado'); router.push('/items')
   }
 
   return (
