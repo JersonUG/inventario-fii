@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { SearchX, Search, RotateCcw, ChevronLeft, ChevronRight, Package, MapPin, User, X, Save } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { CLASIFICACION_OPTIONS } from '@/types/database'
 
 const ITEMS_PER_PAGE = 25
 
 export default function NoLocalizadosPage() {
+  const { profile } = useAuth()
+  const canEdit = profile?.rol !== 'CONSULTA'
   const [items, setItems] = useState<any[]>([])
   const [count, setCount] = useState(0)
   const [page, setPage] = useState(1)
@@ -147,9 +150,9 @@ export default function NoLocalizadosPage() {
                     }`}>{item.estado}</span>
                   </td>
                   <td className="table-cell">
-                    <button onClick={() => openModal(item)} className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg text-xs font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
+                    {canEdit && <button onClick={() => openModal(item)} className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg text-xs font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-sm">
                       <RotateCcw size={12} /> Incorporar
-                    </button>
+                    </button>}
                   </td>
                 </tr>
               ))}

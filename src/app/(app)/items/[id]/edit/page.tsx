@@ -5,17 +5,23 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Save } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import AutocompleteInput from '@/components/AutocompleteInput'
 import { CLASIFICACION_OPTIONS } from '@/types/database'
 import toast from 'react-hot-toast'
 
 export default function EditItemPage() {
+  const { profile } = useAuth()
   const params = useParams()
   const router = useRouter()
   const [form, setForm] = useState<any>({})
   const [original, setOriginal] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (profile && profile.rol === 'CONSULTA') router.push('/items')
+  }, [profile, router])
 
   useEffect(() => {
     supabase.from('items').select('*').eq('id', params.id).single().then(({ data, error }) => {

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, FileText, ExternalLink, Edit, Trash2, History, Download, Eye, X } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { ACTA_TIPOS, ActaTipo } from '@/types/acta-templates'
 import ActaTemplate from '@/components/ActaTemplate'
@@ -27,6 +28,8 @@ interface ActaItemJoined {
 }
 
 export default function ActaDetailPage() {
+  const { profile } = useAuth()
+  const canEdit = profile?.rol !== 'CONSULTA'
   const params = useParams()
   const router = useRouter()
   const [acta, setActa] = useState<any>(null)
@@ -165,12 +168,12 @@ export default function ActaDetailPage() {
               <Eye size={16} /> Vista Previa
             </button>
           )}
-          <Link href={`/actas/${params.id}/edit`} className="btn-primary">
+          {canEdit && <><Link href={`/actas/${params.id}/edit`} className="btn-primary">
             <Edit size={16} /> Editar
           </Link>
           <button onClick={handleDelete} className="btn-secondary !text-red-600 !border-red-200 hover:!bg-red-50">
             <Trash2 size={16} /> Eliminar
-          </button>
+          </button></>}
         </div>
       </div>
 

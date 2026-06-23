@@ -5,11 +5,14 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Edit, History, Package, MapPin, FileText, User, Calendar, Hash, DollarSign } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import { CLASIFICACION_OPTIONS } from '@/types/database'
 
 export default function ItemDetailPage() {
+  const { profile } = useAuth()
   const params = useParams()
   const router = useRouter()
+  const canEdit = profile?.rol !== 'CONSULTA'
   const [item, setItem] = useState<any>(null)
   const [history, setHistory] = useState<any[]>([])
   const [actas, setActas] = useState<any[]>([])
@@ -62,7 +65,7 @@ export default function ItemDetailPage() {
             <p className="text-sm text-gray-500 mt-0.5">{item.descripcion}</p>
           </div>
         </div>
-        <Link href={`/items/${item.id}/edit`} className="btn-primary"><Edit size={16} /> Editar</Link>
+        {canEdit && <Link href={`/items/${item.id}/edit`} className="btn-primary"><Edit size={16} /> Editar</Link>}
       </div>
 
       <div className="flex gap-2 mb-6">

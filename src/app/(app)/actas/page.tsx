@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Plus, Search, FileText, Calendar, User, Download, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { ACTA_TIPOS, ActaTipo } from '@/types/acta-templates'
 
@@ -21,6 +22,8 @@ interface Acta {
 }
 
 export default function ActasPage() {
+  const { profile } = useAuth()
+  const canEdit = profile?.rol !== 'CONSULTA'
   const [actas, setActas] = useState<Acta[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -80,9 +83,9 @@ export default function ActasPage() {
             <p className="text-sm text-gray-500 mt-0.5">{actas.length} registro(s)</p>
           </div>
         </div>
-        <Link href="/actas/nueva" className="btn-primary">
+        {canEdit && <Link href="/actas/nueva" className="btn-primary">
           <Plus size={18} /> Nueva Acta
-        </Link>
+        </Link>}
       </div>
 
       <div className="card mb-6 p-4">
@@ -159,14 +162,14 @@ export default function ActasPage() {
                       ) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="table-cell text-center">
-                      {deleteConfirm === acta.id ? (
+                      {canEdit && (deleteConfirm === acta.id ? (
                         <div className="flex items-center gap-1 justify-center">
                           <button onClick={() => handleDelete(acta.id)} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">Sí</button>
                           <button onClick={() => setDeleteConfirm(null)} className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300">No</button>
                         </div>
                       ) : (
                         <button onClick={() => setDeleteConfirm(acta.id)} className="p-1.5 hover:bg-red-100 rounded text-red-500 transition-colors"><Trash2 size={14} /></button>
-                      )}
+                      ))}
                     </td>
                   </tr>
                 ))}

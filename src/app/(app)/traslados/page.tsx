@@ -4,11 +4,14 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeftRight, Save, Search } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 function TransferPageContent() {
+  const { profile } = useAuth()
   const searchParams = useSearchParams()
   const preselectedIds = searchParams.get('ids')?.split(',').filter(Boolean) || []
+  const canEdit = profile?.rol !== 'CONSULTA'
 
   const [items, setItems] = useState<any[]>([])
   const [selected, setSelected] = useState<string[]>(preselectedIds)
@@ -108,6 +111,7 @@ function TransferPageContent() {
           <p className="text-sm text-gray-500 mt-3 font-medium">{selected.length} ítem(s) seleccionado(s)</p>
         </div>
 
+        {canEdit ? (
         <div className="card p-6">
           <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <span className="w-1 h-5 bg-fii rounded-full inline-block" />
@@ -150,6 +154,11 @@ function TransferPageContent() {
             </button>
           </div>
         </div>
+        ) : (
+          <div className="card p-6 text-center text-gray-500">
+            <p className="text-sm font-medium">Modo solo lectura — No puedes realizar traslados</p>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Plus, Search, ChevronLeft, ChevronRight, Edit, Trash2, X, Download, FileText, XCircle } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
@@ -12,8 +13,10 @@ import { CLASIFICACION_OPTIONS } from '@/types/database'
 const ITEMS_PER_PAGE = 50
 
 function ItemsPageContent() {
+  const { profile } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const canEdit = profile?.rol !== 'CONSULTA'
   const [items, setItems] = useState<any[]>([])
   const [count, setCount] = useState(0)
   const [page, setPage] = useState(1)
@@ -188,7 +191,7 @@ function ItemsPageContent() {
           <button onClick={handleExport} disabled={exporting} className="btn-secondary">
             <Download size={16} /> {exporting ? 'Exportando...' : 'Exportar Excel'}
           </button>
-          <Link href="/items/new" className="btn-primary"><Plus size={16} /> Nuevo Ítem</Link>
+          {canEdit && <Link href="/items/new" className="btn-primary"><Plus size={16} /> Nuevo Ítem</Link>}
         </div>
       </div>
 
@@ -343,8 +346,8 @@ function ItemsPageContent() {
                   <td className="table-cell sticky right-0 bg-white z-10">
                     <div className="flex items-center gap-1">
                       <Link href={`/items/${item.id}`} className="p-1.5 hover:bg-sky-100 rounded text-sky-600 transition-colors" title="Ver detalle"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></Link>
-                      <Link href={`/items/${item.id}/edit`} className="p-1.5 hover:bg-blue-100 rounded text-fii transition-colors"><Edit size={14} /></Link>
-                      <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-100 rounded text-red-600 transition-colors" title="Eliminar"><Trash2 size={14} /></button>
+                      {canEdit && <><Link href={`/items/${item.id}/edit`} className="p-1.5 hover:bg-blue-100 rounded text-fii transition-colors"><Edit size={14} /></Link>
+                      <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-100 rounded text-red-600 transition-colors" title="Eliminar"><Trash2 size={14} /></button></>}
                     </div>
                   </td>
                 </tr>

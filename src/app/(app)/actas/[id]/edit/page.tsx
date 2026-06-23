@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Save, Upload, FileText, Search, X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 interface InventoryItem {
@@ -25,8 +26,14 @@ interface InventoryItem {
 const ITEMS_PER_PAGE = 25
 
 export default function EditActaPage() {
+  const { profile } = useAuth()
   const params = useParams()
   const router = useRouter()
+
+  useEffect(() => {
+    if (profile && profile.rol === 'CONSULTA') router.push('/actas/' + params.id)
+  }, [profile, router, params.id])
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)

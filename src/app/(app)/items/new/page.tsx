@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Save } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import AutocompleteInput from '@/components/AutocompleteInput'
 import { CLASIFICACION_OPTIONS } from '@/types/database'
 import toast from 'react-hot-toast'
 
 export default function NewItemPage() {
+  const { profile } = useAuth()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [loadingNext, setLoadingNext] = useState(true)
@@ -19,6 +21,10 @@ export default function NewItemPage() {
     valor: '', ubicacion: '', observaciones: '', no_acta: '', mes: '',
     clasificacion_activo: 'ACTIVO'
   })
+
+  useEffect(() => {
+    if (profile && profile.rol === 'CONSULTA') router.push('/items')
+  }, [profile, router])
 
   useEffect(() => {
     supabase.from('items').select('item').order('item', { ascending: false }).limit(1).maybeSingle().then(({ data, error }) => {

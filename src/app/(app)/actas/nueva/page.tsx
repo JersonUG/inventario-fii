@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Save, FileText, Search, X, ChevronLeft, ChevronRight, Trash2, Eye, Download } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { ACTA_TIPOS, ACTA_TEMPLATES, ActaTipo } from '@/types/acta-templates'
 import ActaTemplate from '@/components/ActaTemplate'
@@ -33,7 +34,13 @@ interface InventoryItem {
 const BATCH_SIZE = 1000
 
 export default function NewActaPage() {
+  const { profile } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    if (profile && profile.rol === 'CONSULTA') router.push('/actas')
+  }, [profile, router])
+
   const [saving, setSaving] = useState(false)
   const [tipo, setTipo] = useState<ActaTipo | ''>('')
   const [templateData, setTemplateData] = useState<Record<string, string>>({})
