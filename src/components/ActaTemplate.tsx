@@ -102,7 +102,6 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
     fontSize: '12px',
     lineHeight: '1.5',
     color: '#000',
-    padding: '40px 60px',
     background: '#fff',
     maxWidth: '210mm',
     margin: '0 auto',
@@ -124,6 +123,7 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
 
   return (
     <div id="acta-preview" style={docStyle}>
+      <div style={{ padding: '40px 60px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <img src="/images/1.png" alt="" style={{ height: 70 }} />
         <img src="/images/2.png" alt="" style={{ height: 70 }} />
@@ -223,8 +223,9 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
           ⚠️ Vista previa — el PDF final se generará al guardar
         </div>
       )}
+      </div>
 
-      <div style={{ width: '20.99cm', height: '2.01cm', margin: '0 auto' }}>
+      <div style={{ width: '20.99cm', height: '2.01cm', margin: '-0.5px auto 0' }}>
         <img src="/images/pie-pagina.jpg" alt=""
           style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
