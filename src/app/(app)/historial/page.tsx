@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRealtime } from '@/hooks/useRealtime'
 import { History, FileText, ArrowLeftRight, LogIn, ChevronLeft, ChevronRight, Search, Trash2, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -40,16 +41,20 @@ export default function HistoryPage() {
     return query
   }, [tab, search])
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      const from = (page - 1) * 50
-      const { data, count: total, error } = await buildQuery().range(from, from + 49)
-      if (!error) { setEntries(data || []); setCount(total || 0) }
-      setLoading(false)
-    }
-    load()
-  }, [tab, page, search, buildQuery])
+  const loadPage = useCallback(async () => {
+    setLoading(true)
+    const from = (page - 1) * 50
+    const { data, count: total, error } = await buildQuery().range(from, from + 49)
+    if (!error) { setEntries(data || []); setCount(total || 0) }
+    setLoading(false)
+  }, [page, buildQuery])
+
+  useRealtime('item_history', loadPage)
+  useRealtime('acta_history', loadPage)
+  useRealtime('transfer_log', loadPage)
+  useRealtime('auth_log', loadPage)
+
+  useEffect(() => { loadPage() }, [loadPage])
 
   const handleClean = async () => {
     if (!confirm(`¿Ocultar todos los registros visibles de "${TAB_CONFIG[tab].label}"?` +

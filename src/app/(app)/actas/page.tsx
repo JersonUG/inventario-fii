@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Plus, Search, FileText, Calendar, User, Download, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRealtime } from '@/hooks/useRealtime'
 import toast from 'react-hot-toast'
 import { ACTA_TIPOS, ActaTipo } from '@/types/acta-templates'
 
@@ -41,6 +42,7 @@ export default function ActasPage() {
     setLoading(false)
   }, [search, filterTipo])
 
+  useRealtime('actas', loadActas)
   useEffect(() => { loadActas() }, [loadActas])
 
   const handleDelete = async (id: string) => {

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Plus, Search, ChevronLeft, ChevronRight, Edit, Trash2, X, Download, FileText, XCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRealtime } from '@/hooks/useRealtime'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
@@ -73,6 +74,7 @@ function ItemsPageContent() {
     setFilterOptions(opts)
   }, [])
 
+  useRealtime('items', loadItems)
   useEffect(() => { loadItems() }, [loadItems])
   useEffect(() => { loadFilterOptions() }, [loadFilterOptions])
 

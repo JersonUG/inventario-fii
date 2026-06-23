@@ -265,3 +265,15 @@ DROP POLICY IF EXISTS "Allow all read historial_cleanup_log" ON historial_cleanu
 CREATE POLICY "Allow all read historial_cleanup_log" ON historial_cleanup_log FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Allow auth insert historial_cleanup_log" ON historial_cleanup_log;
 CREATE POLICY "Allow auth insert historial_cleanup_log" ON historial_cleanup_log FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- =============================================================
+-- SUPABASE REALTIME (cambios en vivo entre usuarios)
+-- =============================================================
+
+ALTER PUBLICATION supabase_realtime ADD TABLE items;
+ALTER PUBLICATION supabase_realtime ADD TABLE item_history;
+ALTER PUBLICATION supabase_realtime ADD TABLE actas;
+ALTER PUBLICATION supabase_realtime ADD TABLE acta_history;
+ALTER PUBLICATION supabase_realtime ADD TABLE acta_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE transfer_log;
+ALTER PUBLICATION supabase_realtime ADD TABLE auth_log;

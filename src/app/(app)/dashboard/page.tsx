@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useRealtime } from '@/hooks/useRealtime'
 import Link from 'next/link'
 import { Package, FileText, AlertTriangle, TrendingUp, Plus, ArrowRightLeft, FilePlus, SearchX } from 'lucide-react'
 
@@ -9,19 +10,20 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ total: 0, activos: 0, bajas: 0, actas: 0, paraBaja: 0, noLocalizados: 0 })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function load() {
-      const { count: total } = await supabase.from('items').select('*', { count: 'exact', head: true })
-      const { count: activos } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'ACTIVO')
-      const { count: bajas } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'DADO_DE_BAJA')
-      const { count: actas } = await supabase.from('actas').select('*', { count: 'exact', head: true })
-      const { count: paraBaja } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'PROXIMO_A_BAJA')
-      const { count: noLocalizados } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'NO_LOCALIZADO')
-      setStats({ total: total || 0, activos: activos || 0, bajas: bajas || 0, actas: actas || 0, paraBaja: paraBaja || 0, noLocalizados: noLocalizados || 0 })
-      setLoading(false)
-    }
-    load()
+  const loadStats = useCallback(async () => {
+    const { count: total } = await supabase.from('items').select('*', { count: 'exact', head: true })
+    const { count: activos } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'ACTIVO')
+    const { count: bajas } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'DADO_DE_BAJA')
+    const { count: actas } = await supabase.from('actas').select('*', { count: 'exact', head: true })
+    const { count: paraBaja } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'PROXIMO_A_BAJA')
+    const { count: noLocalizados } = await supabase.from('items').select('*', { count: 'exact', head: true }).eq('clasificacion_activo', 'NO_LOCALIZADO')
+    setStats({ total: total || 0, activos: activos || 0, bajas: bajas || 0, actas: actas || 0, paraBaja: paraBaja || 0, noLocalizados: noLocalizados || 0 })
+    setLoading(false)
   }, [])
+
+  useRealtime('items', loadStats)
+  useRealtime('actas', loadStats)
+  useEffect(() => { loadStats() }, [loadStats])
 
   const cards = [
     { label: 'Total Registros', value: stats.total, icon: Package, from: 'from-fii', to: 'to-fii-dark', href: '/items' },
