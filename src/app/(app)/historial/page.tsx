@@ -1,44 +1,83 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { History, FileText, ArrowLeftRight, LogIn, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { History, FileText, ArrowLeftRight, LogIn, ChevronLeft, ChevronRight, Search, Trash2, RotateCcw } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 type Tab = 'items' | 'actas' | 'traslados' | 'auth'
 
+const TAB_CONFIG = {
+  items: { table: 'item_history', select: '*', filterCol: null, label: 'Ítems', icon: History },
+  actas: { table: 'acta_history', select: '*,actas(name)', filterCol: null, label: 'Actas', icon: FileText },
+  traslados: { table: 'transfer_log', select: '*,items(item,descripcion)', filterCol: null, label: 'Traslados', icon: ArrowLeftRight },
+  auth: { table: 'auth_log', select: '*', filterCol: null, label: 'Accesos', icon: LogIn },
+}
+
 export default function HistoryPage() {
+  const { profile } = useAuth()
+  const isAdmin = profile?.rol === 'ADMINISTRADOR'
   const [tab, setTab] = useState<Tab>('items')
   const [entries, setEntries] = useState<any[]>([])
   const [count, setCount] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [cleaning, setCleaning] = useState(false)
   const totalPages = Math.ceil(count / 50)
+
+  const buildQuery = useCallback(() => {
+    const cfg = TAB_CONFIG[tab]
+    let query = supabase.from(cfg.table).select(cfg.select, { count: 'exact' }).eq('visible_en_sistema', true).order('created_at', { ascending: false })
+
+    if (search) {
+      if (tab === 'items') query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%`)
+      else if (tab === 'actas') query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%,actas.name.ilike.%${search}%`)
+      else if (tab === 'traslados') query = query.or(`user_name.ilike.%${search}%,transfer_type.ilike.%${search}%,from_value.ilike.%${search}%,to_value.ilike.%${search}%`)
+      else query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%`)
+    }
+    return query
+  }, [tab, search])
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
-      let query: any
-      if (tab === 'items') {
-        query = supabase.from('item_history').select('*', { count: 'exact' }).order('created_at', { ascending: false })
-        if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%`)
-      } else if (tab === 'actas') {
-        query = supabase.from('acta_history').select('*,actas(name)', { count: 'exact' }).order('created_at', { ascending: false })
-        if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%,actas.name.ilike.%${search}%`)
-      } else if (tab === 'traslados') {
-        query = supabase.from('transfer_log').select('*,items(item,descripcion)', { count: 'exact' }).order('created_at', { ascending: false })
-        if (search) query = query.or(`user_name.ilike.%${search}%,transfer_type.ilike.%${search}%,from_value.ilike.%${search}%,to_value.ilike.%${search}%`)
-      } else {
-        query = supabase.from('auth_log').select('*', { count: 'exact' }).order('created_at', { ascending: false })
-        if (search) query = query.or(`user_name.ilike.%${search}%,action.ilike.%${search}%`)
-      }
       const from = (page - 1) * 50
-      const { data, count: total, error } = await query.range(from, from + 49)
+      const { data, count: total, error } = await buildQuery().range(from, from + 49)
       if (!error) { setEntries(data || []); setCount(total || 0) }
       setLoading(false)
     }
     load()
-  }, [tab, page, search])
+  }, [tab, page, search, buildQuery])
+
+  const handleClean = async () => {
+    if (!confirm(`¿Ocultar todos los registros visibles de "${TAB_CONFIG[tab].label}"?` +
+      '\n\nNo se eliminarán de la base de datos.\nUn administrador puede restaurarlos desde la Papelera de Historiales.')) return
+
+    setCleaning(true)
+    const user = (await supabase.auth.getUser()).data.user
+    if (!user) { toast.error('Debes iniciar sesión'); setCleaning(false); return }
+
+    const cfg = TAB_CONFIG[tab]
+    const { data: toHide } = await supabase.from(cfg.table).select('id').eq('visible_en_sistema', true)
+    if (!toHide || toHide.length === 0) { toast('No hay registros para ocultar'); setCleaning(false); return }
+
+    const ids = toHide.map(r => r.id)
+    const { error } = await supabase.from(cfg.table).update({ visible_en_sistema: false }).in('id', ids)
+    if (error) { toast.error('Error al ocultar: ' + error.message); setCleaning(false); return }
+
+    await supabase.from('historial_cleanup_log').insert([{
+      user_id: user.id, user_name: user.email || 'Sistema',
+      modulo: tab, cantidad: ids.length,
+    }])
+
+    toast.success(`${ids.length} registro(s) ocultado(s)`)
+    setCleaning(false)
+    setPage(1)
+    const { data, count: total, error: err2 } = await buildQuery().range(0, 49)
+    if (!err2) { setEntries(data || []); setCount(total || 0) }
+  }
 
   const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: 'items', label: 'Ítems', icon: History },
@@ -82,12 +121,19 @@ export default function HistoryPage() {
             })}
           </div>
         </div>
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-md">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
+          <div className="relative max-w-md flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} placeholder="Buscar..."
               className="input-field pl-9" />
           </div>
+          {isAdmin && (
+            <button onClick={handleClean} disabled={cleaning}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50">
+              <Trash2 size={16} />
+              {cleaning ? 'Ocultando...' : 'LIMPIAR HISTORIAL'}
+            </button>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -125,7 +171,7 @@ export default function HistoryPage() {
                     {tab === 'items' ? (
                       entry.action === 'create' ? 'Ítem creado' : entry.action === 'baja' ? 'Ítem dado de baja'
                       : entry.action === 'delete' ? 'Ítem eliminado' : entry.action === 'transfer' ? 'Traslado'
-                      : entry.action === 'update' ? 'Ítem modificado'                       : entry.action === 'reincorporar' ? 'Reincorporado al inventario'
+                      : entry.action === 'update' ? 'Ítem modificado' : entry.action === 'reincorporar' ? 'Reincorporado al inventario'
                       : JSON.stringify(entry.changes)
                     ) : tab === 'actas' ? (
                       entry.action === 'create' ? 'Acta creada' : entry.action === 'update' ? 'Acta modificada'

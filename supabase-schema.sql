@@ -171,3 +171,56 @@ CREATE TABLE IF NOT EXISTS auth_log (
 ALTER TABLE auth_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all read auth_log" ON auth_log FOR SELECT USING (true);
 CREATE POLICY "Allow auth insert auth_log" ON auth_log FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- =============================================================
+-- SISTEMA DE ROLES Y PERFILES DE USUARIO
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID UNIQUE NOT NULL,
+  email TEXT NOT NULL,
+  rol TEXT NOT NULL DEFAULT 'OPERADOR' CHECK (rol IN ('ADMINISTRADOR', 'OPERADOR', 'CONSULTA')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all read user_profiles" ON user_profiles FOR SELECT USING (true);
+CREATE POLICY "Allow auth insert user_profiles" ON user_profiles FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Allow auth update user_profiles" ON user_profiles FOR UPDATE USING (auth.role() = 'authenticated');
+
+-- Insertar admin por defecto (se ejecuta solo si no existe)
+INSERT INTO user_profiles (user_id, email, rol)
+SELECT id, email, 'ADMINISTRADOR' FROM auth.users WHERE email = 'admin@fii.edu'
+ON CONFLICT (user_id) DO UPDATE SET rol = 'ADMINISTRADOR';
+
+-- =============================================================
+-- VISIBILIDAD EN SISTEMA (soft-hide para historiales)
+-- =============================================================
+
+ALTER TABLE item_history ADD COLUMN IF NOT EXISTS visible_en_sistema BOOLEAN DEFAULT TRUE;
+ALTER TABLE acta_history ADD COLUMN IF NOT EXISTS visible_en_sistema BOOLEAN DEFAULT TRUE;
+ALTER TABLE transfer_log ADD COLUMN IF NOT EXISTS visible_en_sistema BOOLEAN DEFAULT TRUE;
+ALTER TABLE auth_log ADD COLUMN IF NOT EXISTS visible_en_sistema BOOLEAN DEFAULT TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_item_history_visible ON item_history(visible_en_sistema);
+CREATE INDEX IF NOT EXISTS idx_acta_history_visible ON acta_history(visible_en_sistema);
+CREATE INDEX IF NOT EXISTS idx_transfer_log_visible ON transfer_log(visible_en_sistema);
+CREATE INDEX IF NOT EXISTS idx_auth_log_visible ON auth_log(visible_en_sistema);
+
+-- =============================================================
+-- AUDITORÍA DE LIMPIEZA DE HISTORIALES
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS historial_cleanup_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  user_name TEXT DEFAULT '',
+  modulo TEXT NOT NULL,
+  cantidad INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE historial_cleanup_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all read historial_cleanup_log" ON historial_cleanup_log FOR SELECT USING (true);
+CREATE POLICY "Allow auth insert historial_cleanup_log" ON historial_cleanup_log FOR INSERT WITH CHECK (auth.role() = 'authenticated');

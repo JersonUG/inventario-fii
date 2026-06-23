@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ArrowLeftRight, History, FileText, LogOut, Menu, X, SearchX, AlertTriangle, Trash2 } from 'lucide-react'
+import { LayoutDashboard, Package, ArrowLeftRight, History, FileText, LogOut, Menu, X, SearchX, AlertTriangle, Trash2, Archive } from 'lucide-react'
 import { useState } from 'react'
 
 const menuItems = [
@@ -16,9 +16,10 @@ const menuItems = [
   { href: '/historial', label: 'Historial', icon: History },
 ]
 
-export default function Sidebar({ userEmail, onLogout }: { userEmail?: string; onLogout: () => void }) {
+export default function Sidebar({ userEmail, userRol, onLogout }: { userEmail?: string; userRol?: string; onLogout: () => void }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const isAdmin = userRol === 'ADMINISTRADOR'
 
   return (
     <>
@@ -64,6 +65,18 @@ export default function Sidebar({ userEmail, onLogout }: { userEmail?: string; o
               </Link>
             )
           })}
+          {isAdmin && (
+            <Link href="/historial/papelera" onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 relative group ${
+                pathname === '/historial/papelera' ? 'bg-gradient-to-r from-fii/90 to-fii-light/80 text-white shadow-lg shadow-fii/20' : 'text-blue-200 hover:bg-white/5 hover:text-white'
+              }`}>
+              {pathname === '/historial/papelera' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-fii-light rounded-r-full" />}
+              <div className={`p-1.5 rounded-lg transition-all duration-200 ${pathname === '/historial/papelera' ? 'bg-white/15' : 'group-hover:bg-white/5'}`}>
+                <Archive size={18} />
+              </div>
+              <span className="font-medium text-sm">Papelera de Historiales</span>
+            </Link>
+          )}
         </nav>
 
         <div className="p-3 border-t border-ug-light/30">
