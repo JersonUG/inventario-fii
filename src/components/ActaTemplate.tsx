@@ -103,7 +103,7 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
       case 'ENTREGA_RECEPCION_CONSTATACION':
         return (
           <>
-            <tr><td style={tdStyle}><b>{d('NOMBRE_ADMINISTRADOR')} / {d('CARGO_ADMINISTRADOR')}</b><br /><span style={{fontSize: '11px'}}>Entrega Conforme</span></td><td style={{width: 40}}></td><td style={tdStyle}><b>{d('NOMBRE_USUARIO_FINAL')} / {d('CARGO_USUARIO_FINAL')}</b><br /><span style={{fontSize: '11px'}}>Recibe Conforme</span></td></tr>
+            <tr><td style={tdStyle} colSpan={3}><b>{d('NOMBRE_ADMINISTRADOR')} / {d('CARGO_ADMINISTRADOR')}</b></td></tr>
           </>
         )
     }
