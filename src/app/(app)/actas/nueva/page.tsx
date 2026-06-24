@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Save, FileText, Search, X, ChevronLeft, ChevronRight, Trash2, Eye, Download } from 'lucide-react'
+import { ArrowLeft, Save, FileText, Search, X, ChevronLeft, ChevronRight, Trash2, Eye, Download, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -41,6 +41,8 @@ export default function NewActaPage() {
   const [tipo, setTipo] = useState<ActaTipo | ''>('')
   const [templateData, setTemplateData] = useState<Record<string, string>>({})
   const [showPreview, setShowPreview] = useState(false)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
 
   const [allInventory, setAllInventory] = useState<InventoryItem[]>([])
@@ -211,14 +213,24 @@ export default function NewActaPage() {
       user_id: user.id, user_name: user.email || 'Sistema',
     }])
 
-    // Generate and upload PDF
-    const blob = await generatePDFBlob()
-    if (blob) {
-      const path = `actas/${acta.id}.pdf`
-      const { error: upError } = await supabase.storage.from('actas').upload(path, blob, { contentType: 'application/pdf', upsert: true })
+    // Upload file (uploaded or generated PDF)
+    if (uploadedFile) {
+      const ext = uploadedFile.name.split('.').pop()
+      const path = `actas/${acta.id}.${ext}`
+      const { error: upError } = await supabase.storage.from('actas').upload(path, uploadedFile, { upsert: true })
       if (!upError) {
         const { data: { publicUrl } } = supabase.storage.from('actas').getPublicUrl(path)
-        await supabase.from('actas').update({ file_url: publicUrl, file_type: 'application/pdf' }).eq('id', acta.id)
+        await supabase.from('actas').update({ file_url: publicUrl, file_type: uploadedFile.type }).eq('id', acta.id)
+      }
+    } else {
+      const blob = await generatePDFBlob()
+      if (blob) {
+        const path = `actas/${acta.id}.pdf`
+        const { error: upError } = await supabase.storage.from('actas').upload(path, blob, { contentType: 'application/pdf', upsert: true })
+        if (!upError) {
+          const { data: { publicUrl } } = supabase.storage.from('actas').getPublicUrl(path)
+          await supabase.from('actas').update({ file_url: publicUrl, file_type: 'application/pdf' }).eq('id', acta.id)
+        }
       }
     }
 
@@ -455,11 +467,31 @@ export default function NewActaPage() {
           </div>
         )}
 
+        {/* Upload existing file */}
+        {tipo && (
+          <div className="card p-4">
+            <h2 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm">
+              <span className="w-1 h-5 bg-fii rounded-full inline-block" />
+              Subir documento existente
+              <span className="text-xs text-gray-400 font-normal ml-1">(opcional — reemplaza el PDF generado)</span>
+            </h2>
+            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/50 transition-all">
+              <Upload className="mx-auto text-gray-400 mb-2" size={28} />
+              <p className="text-sm text-gray-500 font-medium">{uploadedFile ? uploadedFile.name : 'Haz clic para subir Word / PDF'}</p>
+              <p className="text-xs text-gray-400 mt-1">PDF, DOCX, JPG — Máx 20MB</p>
+              <input ref={fileInputRef} type="file" accept=".pdf,.docx,.jpg,.jpeg,.png" onChange={(e) => setUploadedFile(e.target.files?.[0] || null)} className="hidden" />
+            </div>
+            {uploadedFile && (
+              <button type="button" onClick={() => { setUploadedFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="mt-2 text-xs text-red-600 hover:underline">Quitar archivo</button>
+            )}
+          </div>
+        )}
+
         {/* Submit */}
         {tipo && (
           <div className="flex items-center gap-3 pt-2">
             <button type="submit" disabled={saving} className="btn-primary !px-6 !py-2.5">
-              <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Acta y Generar PDF'}
+              <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Acta'}
             </button>
             <span className="text-sm text-gray-400">
               {selectedIds.length > 0 ? `${selectedIds.length} bien(es) asociado(s)` : 'Sin bienes seleccionados'}

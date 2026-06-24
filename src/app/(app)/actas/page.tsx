@@ -69,6 +69,7 @@ export default function ActasPage() {
       ASIGNACION_USUARIO: 'bg-blue-100 text-blue-700',
       RECEPCION_BODEGA: 'bg-green-100 text-green-700',
       CONSTATACION_FISICA: 'bg-amber-100 text-amber-700',
+      ENTREGA_RECEPCION_CONSTATACION: 'bg-rose-100 text-rose-700',
     }
     return colors[t || ''] || 'bg-gray-100 text-gray-600'
   }

@@ -39,6 +39,8 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
         return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se dispone la recepción de los bienes detallados en la cláusula tercera, provenientes de ${d('NOMBRE_ENTREGA')} / ${d('AREA_ORIGEN')}, a la Bodega / Administración de la Facultad de Ingeniería Industrial.`
       case 'CONSTATACION_FISICA':
         return `En cumplimiento a lo dispuesto por ${d('AUTORIDAD_DOCUMENTO')}, se realiza la constatación física de los bienes asignados al ${d('NOMBRE_USUARIO_FINAL')}, con la finalidad de verificar su estado y ubicación actual.`
+      case 'ENTREGA_RECEPCION_CONSTATACION':
+        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se procede a la entrega recepción de los bienes detallados en la cláusula tercera, asignados al ${d('NOMBRE_USUARIO_FINAL')}, con la finalidad de verificar su estado y ubicación actual.`
     }
   }
 
@@ -52,6 +54,8 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
         return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes recibidos en la Bodega de la Facultad de Ingeniería Industrial, provenientes de ${d('UBICACION_BIENES')}.`
       case 'CONSTATACION_FISICA':
         return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes constatados físicamente en ${d('UBICACION_BIENES')}, pertenecientes al ${d('NOMBRE_USUARIO_FINAL')}.`
+      case 'ENTREGA_RECEPCION_CONSTATACION':
+        return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes que se entregan, reciben y constatan, ubicados en ${d('UBICACION_BIENES')}.`
     }
   }
 
@@ -65,6 +69,8 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
         return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_ENTREGA')} como ENTREGA, y el ${d('NOMBRE_ADMINISTRADOR')} como RECIBE.`
       case 'CONSTATACION_FISICA':
         return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_ADMINISTRADOR')} y ${d('NOMBRE_USUARIO_FINAL')}.`
+      case 'ENTREGA_RECEPCION_CONSTATACION':
+        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, el ${d('NOMBRE_ADMINISTRADOR')} como ENTREGA CONFORME y el ${d('NOMBRE_USUARIO_FINAL')} como RECIBE CONFORME.`
     }
   }
 
@@ -92,6 +98,12 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
         return (
           <>
             <tr><td style={tdStyle}><b>{d('NOMBRE_ADMINISTRADOR')} / ADMINISTRADOR / FII</b><br /><span style={{fontSize: '11px'}}>Constató</span></td><td style={{width: 40}}></td><td style={tdStyle}><b>{d('NOMBRE_USUARIO_FINAL')} / {d('CARGO_USUARIO_FINAL')}</b><br /><span style={{fontSize: '11px'}}>Constató</span></td></tr>
+          </>
+        )
+      case 'ENTREGA_RECEPCION_CONSTATACION':
+        return (
+          <>
+            <tr><td style={tdStyle}><b>{d('NOMBRE_ADMINISTRADOR')} / {d('CARGO_ADMINISTRADOR')}</b><br /><span style={{fontSize: '11px'}}>Entrega Conforme</span></td><td style={{width: 40}}></td><td style={tdStyle}><b>{d('NOMBRE_USUARIO_FINAL')} / {d('CARGO_USUARIO_FINAL')}</b><br /><span style={{fontSize: '11px'}}>Recibe Conforme</span></td></tr>
           </>
         )
     }
