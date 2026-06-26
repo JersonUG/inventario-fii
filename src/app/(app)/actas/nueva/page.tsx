@@ -54,13 +54,24 @@ export default function NewActaPage() {
   const [invPage, setInvPage] = useState(1)
   const ITEMS_PER_PAGE = 50
 
-  const filtered = invSearch
-    ? allInventory.filter(i =>
-        [i.cod_inv, i.descripcion, i.marca, i.modelo, i.serie, i.ubicacion, i.no_acta].some(
-          v => v?.toLowerCase().includes(invSearch.toLowerCase())
-        )
-      )
-    : allInventory
+  // Filters
+  const [filtroEstado, setFiltroEstado] = useState('')
+  const [filtroClasificacion, setFiltroClasificacion] = useState('')
+  const [filtroCuenta, setFiltroCuenta] = useState('')
+
+  const uniqueEstados: string[] = [...new Set(allInventory.map(i => i.estado).filter((v): v is string => !!v))].sort()
+  const uniqueClasificaciones: string[] = [...new Set(allInventory.map(i => i.clasificacion_activo).filter((v): v is string => !!v))].sort()
+  const uniqueCuentas: string[] = [...new Set(allInventory.map(i => i.cuenta).filter((v): v is string => !!v))].sort()
+
+  const filtered = allInventory.filter(i => {
+    if (invSearch && ![i.cod_inv, i.descripcion, i.marca, i.modelo, i.serie, i.ubicacion, i.no_acta].some(
+      v => v?.toLowerCase().includes(invSearch.toLowerCase())
+    )) return false
+    if (filtroEstado && i.estado !== filtroEstado) return false
+    if (filtroClasificacion && i.clasificacion_activo !== filtroClasificacion) return false
+    if (filtroCuenta && i.cuenta !== filtroCuenta) return false
+    return true
+  })
 
   // Load ALL items in batches
   useEffect(() => {
@@ -102,6 +113,21 @@ export default function NewActaPage() {
   }, [selectedIds])
 
   const campos = tipo ? ACTA_TEMPLATES[tipo].campos : []
+
+  const FIELD_GROUPS: { title: string; keys: string[] }[] = [
+    {
+      title: 'DATOS DE ACTA',
+      keys: ['NUMERO_ACTA', 'FECHA_DIA', 'FECHA_MES', 'FECHA_ANIO'],
+    },
+    {
+      title: 'RESPONSABLES',
+      keys: ['NOMBRE_ADMINISTRADOR', 'CARGO_ADMINISTRADOR', 'NOMBRE_USUARIO_FINAL', 'CARGO_USUARIO_FINAL', 'NOMBRE_ENTREGA', 'CARGO_ENTREGA'],
+    },
+    {
+      title: 'ANTECEDENTES',
+      keys: ['DOCUMENTO_REFERENCIA', 'AUTORIDAD_DOCUMENTO', 'UBICACION_BIENES', 'UBICACION_ESPECIFICA', 'AREA_ORIGEN', 'TIPO_RENUNCIA', 'CARGO_USUARIO', 'FECHA_EFECTIVA'],
+    },
+  ]
 
   const updateTemplateField = (key: string, value: string) => {
     setTemplateData(prev => ({ ...prev, [key]: value }))
@@ -150,6 +176,48 @@ export default function NewActaPage() {
       return null
     }
   }
+
+  const getCleanBodyHtml = (): string | null => {
+    const el = previewRef.current
+    if (!el) return null
+    const clone = el.cloneNode(true) as HTMLElement
+    const hdr = clone.querySelector('[style*="display: flex"], [style*="display:flex"]')
+    if (hdr) hdr.remove()
+    const ftr = clone.querySelector('[style*="20.99cm"]')
+    if (ftr) ftr.remove()
+    return clone.innerHTML
+  }
+
+  const downloadFromApi = async (endpoint: string, ext: string) => {
+    const html = getCleanBodyHtml()
+    if (!html) { toast.error('Vista previa no disponible'); return }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) { toast.error('Sesión expirada'); return }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ html, numeroActa: templateData.NUMERO_ACTA }),
+      })
+      if (!res.ok) { const err = await res.json(); toast.error(err.error || 'Error'); return }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      if (ext === 'pdf') {
+        window.open(url, '_blank')
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `Acta_${templateData.NUMERO_ACTA || 'SinNumero'}.${ext}`
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        toast.success('Documento descargado')
+      }
+    } catch (e: any) { toast.error('Error: ' + e.message) }
+  }
+
+  const handleDownloadWord = () => downloadFromApi('/api/export/acta-word', 'docx')
+  const handleDownloadPDF = () => downloadFromApi('/api/export/acta-pdf', 'pdf')
 
   const handlePreview = () => {
     if (!tipo) { toast.error('Selecciona un tipo de acta'); return }
@@ -204,6 +272,39 @@ export default function NewActaPage() {
           user_id: user.id, user_name: user.email || 'Sistema',
         }])
       }
+
+      // --- SINCRONIZACIÓN ACTA → INVENTARIO (Req 1) ---
+      // Actualizar responsable_actual y ubicacion_especifica en bienes según el tipo de acta
+      const syncUpdates: Record<string, any> = { updated_at: new Date().toISOString() }
+
+      if (templateData.UBICACION_ESPECIFICA) {
+        syncUpdates.ubicacion_especifica = templateData.UBICACION_ESPECIFICA
+      }
+
+      switch (tipo) {
+        case 'ASIGNACION_USUARIO':
+        case 'ENTREGA_RECEPCION_CONSTATACION':
+          if (templateData.NOMBRE_USUARIO_FINAL) syncUpdates.responsable_actual = templateData.NOMBRE_USUARIO_FINAL
+          break
+        case 'ENTREGA_ADMIN':
+        case 'RECEPCION_BODEGA':
+          if (templateData.NOMBRE_ADMINISTRADOR) syncUpdates.responsable_actual = templateData.NOMBRE_ADMINISTRADOR
+          break
+      }
+
+      if (Object.keys(syncUpdates).length > 1 || syncUpdates.ubicacion_especifica || syncUpdates.responsable_actual) {
+        const { error: syncError } = await supabase.from('items').update(syncUpdates).in('id', selectedIds)
+        if (!syncError) {
+          for (const itemId of selectedIds) {
+            await supabase.from('item_history').insert([{
+              item_id: itemId, action: 'update',
+              changes: syncUpdates,
+              user_id: user.id, user_name: user.email || 'Sistema',
+            }])
+          }
+        }
+      }
+      // --- FIN SINCRONIZACIÓN ---
     }
 
     // History
@@ -294,33 +395,47 @@ export default function NewActaPage() {
           </div>
         </div>
 
-        {/* Dynamic form */}
+        {/* Dynamic form — grouped */}
         {tipo && (
-          <div className="card p-6">
-            <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
               <span className="w-1 h-5 bg-fii rounded-full inline-block" />
-              Datos de la Plantilla — {ACTA_TIPOS.find(t => t.value === tipo)?.label}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {campos.map(campo => (
-                <div key={campo.key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {campo.label}
-                    {campo.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    value={templateData[campo.key] || ''}
-                    onChange={(e) => updateTemplateField(campo.key, e.target.value)}
-                    className="input-field"
-                    placeholder={campo.label}
-                    required={campo.required}
-                  />
-                </div>
-              ))}
+              <h2 className="font-semibold text-gray-800">
+                Datos de la Plantilla — {ACTA_TIPOS.find(t => t.value === tipo)?.label}
+              </h2>
             </div>
+            {FIELD_GROUPS.map(group => {
+              const groupCampos = campos.filter(c => group.keys.includes(c.key))
+              if (groupCampos.length === 0) return null
+              return (
+                <div key={group.title} className="card p-5 border-t-2 border-t-fii">
+                  <h3 className="text-sm font-bold text-fii uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span className="w-0.5 h-4 bg-fii rounded-full" />
+                    {group.title}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groupCampos.map(campo => (
+                      <div key={campo.key}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {campo.label}
+                          {campo.required && <span className="text-red-500 ml-1">*</span>}
+                        </label>
+                        <input
+                          type="text"
+                          value={templateData[campo.key] || ''}
+                          onChange={(e) => updateTemplateField(campo.key, e.target.value)}
+                          className="input-field"
+                          placeholder={campo.label}
+                          required={campo.required}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
             {!tipo.includes('RECEPCION') && (
-              <p className="text-xs text-gray-400 mt-3">Los campos marcados con * son obligatorios</p>
+              <p className="text-xs text-gray-400">Los campos marcados con * son obligatorios</p>
             )}
           </div>
         )}
@@ -344,6 +459,25 @@ export default function NewActaPage() {
                     className="input-field pl-9" />
                 </div>
                 <button type="button" onClick={handleSearch} className="px-5 py-2.5 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">Buscar</button>
+              </div>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <select value={filtroEstado} onChange={e => { setFiltroEstado(e.target.value); setInvPage(1) }} className="input-field text-sm max-w-[160px]">
+                  <option value="">Todos los Estados</option>
+                  {uniqueEstados.map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+                <select value={filtroClasificacion} onChange={e => { setFiltroClasificacion(e.target.value); setInvPage(1) }} className="input-field text-sm max-w-[180px]">
+                  <option value="">Todas las Clasificaciones</option>
+                  {uniqueClasificaciones.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
+                </select>
+                <select value={filtroCuenta} onChange={e => { setFiltroCuenta(e.target.value); setInvPage(1) }} className="input-field text-sm max-w-[200px]">
+                  <option value="">Todas las Cuentas</option>
+                  {uniqueCuentas.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                {(filtroEstado || filtroClasificacion || filtroCuenta) && (
+                  <button type="button" onClick={() => { setFiltroEstado(''); setFiltroClasificacion(''); setFiltroCuenta(''); setInvPage(1) }} className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    Limpiar filtros
+                  </button>
+                )}
               </div>
             </div>
 
@@ -467,26 +601,6 @@ export default function NewActaPage() {
           </div>
         )}
 
-        {/* Upload existing file */}
-        {tipo && (
-          <div className="card p-4">
-            <h2 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm">
-              <span className="w-1 h-5 bg-fii rounded-full inline-block" />
-              Subir documento existente
-              <span className="text-xs text-gray-400 font-normal ml-1">(opcional — reemplaza el PDF generado)</span>
-            </h2>
-            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/50 transition-all">
-              <Upload className="mx-auto text-gray-400 mb-2" size={28} />
-              <p className="text-sm text-gray-500 font-medium">{uploadedFile ? uploadedFile.name : 'Haz clic para subir Word / PDF'}</p>
-              <p className="text-xs text-gray-400 mt-1">PDF, DOCX, JPG — Máx 20MB</p>
-              <input ref={fileInputRef} type="file" accept=".pdf,.docx,.jpg,.jpeg,.png" onChange={(e) => setUploadedFile(e.target.files?.[0] || null)} className="hidden" />
-            </div>
-            {uploadedFile && (
-              <button type="button" onClick={() => { setUploadedFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="mt-2 text-xs text-red-600 hover:underline">Quitar archivo</button>
-            )}
-          </div>
-        )}
-
         {/* Submit */}
         {tipo && (
           <div className="flex items-center gap-3 pt-2">
@@ -509,14 +623,11 @@ export default function NewActaPage() {
                 <Eye size={18} /> Vista Previa del Acta
               </h2>
               <div className="flex gap-2">
-                <button onClick={async () => {
-                  const blob = await generatePDFBlob()
-                  if (blob) {
-                    const url = URL.createObjectURL(blob)
-                    window.open(url, '_blank')
-                  } else toast.error('Error al generar PDF')
-                }} className="btn-primary !text-xs !px-3 !py-1.5">
-                  <Download size={14} /> Descargar PDF
+                <button onClick={handleDownloadWord} className="btn-secondary !text-xs !px-3 !py-1.5">
+                  <Download size={14} /> Word
+                </button>
+                <button onClick={handleDownloadPDF} className="btn-primary !text-xs !px-3 !py-1.5">
+                  <Download size={14} /> PDF
                 </button>
                 <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
               </div>

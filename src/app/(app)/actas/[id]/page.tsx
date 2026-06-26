@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, FileText, ExternalLink, Edit, Trash2, History, Download, Eye, X } from 'lucide-react'
+import { ArrowLeft, FileText, ExternalLink, Edit, Trash2, History, Download, Eye, X, FileDown } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { ACTA_TIPOS, ActaTipo } from '@/types/acta-templates'
 import ActaTemplate from '@/components/ActaTemplate'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
 
 interface ActaItemJoined {
   id: string
@@ -78,44 +76,72 @@ export default function ActaDetailPage() {
     router.push('/actas')
   }
 
-  const generatePDFBlob = async (): Promise<Blob | null> => {
+  const getCleanBodyHtml = (): string | null => {
     const el = previewRef.current
     if (!el) return null
-    try {
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const pdfWidth = 210
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-      let heightLeft = pdfHeight
-      let position = 0
-      const pageHeight = 297
-
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
-      heightLeft -= pageHeight
-      while (heightLeft > 0) {
-        position = heightLeft - pdfHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
-        heightLeft -= pageHeight
-      }
-      return pdf.output('blob')
-    } catch (err) {
-      console.error('PDF error:', err)
-      return null
-    }
+    const clone = el.cloneNode(true) as HTMLElement
+    const hdr = clone.querySelector('[style*="display: flex"], [style*="display:flex"]')
+    if (hdr) hdr.remove()
+    const ftr = clone.querySelector('[style*="20.99cm"]')
+    if (ftr) ftr.remove()
+    return clone.innerHTML
   }
 
+  const downloadFromApi = async (endpoint: string, ext: string) => {
+    const html = getCleanBodyHtml()
+    if (!html) { toast.error('Vista previa no disponible'); return }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) { toast.error('Sesión expirada'); return }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ html, numeroActa: acta?.name || '' }),
+      })
+      if (!res.ok) { const err = await res.json(); toast.error(err.error || 'Error'); return }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      if (ext === 'pdf') {
+        window.open(url, '_blank')
+        URL.revokeObjectURL(url)
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `Acta_${(acta?.name || 'SinNumero').replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+    } catch (e: any) { toast.error('Error: ' + e.message) }
+  }
+
+  const handleDownloadPDF = () => downloadFromApi('/api/export/acta-pdf', 'pdf')
+  const handleDownloadWord = () => downloadFromApi('/api/export/acta-word', 'docx')
+
   const handleRegeneratePDF = async () => {
-    const blob = await generatePDFBlob()
-    if (!blob) { toast.error('Error al generar PDF'); return }
-    const path = `actas/${params.id}.pdf`
-    const { error: upError } = await supabase.storage.from('actas').upload(path, blob, { contentType: 'application/pdf', upsert: true })
-    if (upError) { toast.error('Error al subir PDF'); return }
-    const { data: { publicUrl } } = supabase.storage.from('actas').getPublicUrl(path)
-    await supabase.from('actas').update({ file_url: publicUrl, file_type: 'application/pdf' }).eq('id', params.id)
-    setActa((prev: any) => ({ ...prev, file_url: publicUrl, file_type: 'application/pdf' }))
-    toast.success('PDF actualizado')
+    const html = getCleanBodyHtml()
+    if (!html) { toast.error('Vista previa no disponible'); return }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) { toast.error('Sesión expirada'); return }
+
+      const res = await fetch('/api/export/acta-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ html, numeroActa: acta?.name || '' }),
+      })
+      if (!res.ok) { const err = await res.json(); toast.error(err.error || 'Error'); return }
+
+      const blob = await res.blob()
+      const path = `actas/${params.id}.pdf`
+      const { error: upError } = await supabase.storage.from('actas').upload(path, blob, { contentType: 'application/pdf', upsert: true })
+      if (upError) { toast.error('Error al subir PDF'); return }
+      const { data: { publicUrl } } = supabase.storage.from('actas').getPublicUrl(path)
+      await supabase.from('actas').update({ file_url: publicUrl, file_type: 'application/pdf' }).eq('id', params.id)
+      setActa((prev: any) => ({ ...prev, file_url: publicUrl, file_type: 'application/pdf' }))
+      toast.success('PDF actualizado en Storage')
+    } catch (e: any) { toast.error('Error: ' + e.message) }
   }
 
   const getTipoLabel = (t: ActaTipo | null) => ACTA_TIPOS.find(tp => tp.value === t)?.label || 'Sin tipo'
@@ -226,16 +252,19 @@ export default function ActaDetailPage() {
                   <p className="font-medium text-gray-800">{String(value || '-')}</p>
                 </div>
               ))}
-              <div className="col-span-2 pt-3 border-t border-gray-100 flex gap-2">
+              <div className="col-span-2 pt-3 border-t border-gray-100 flex gap-3">
                 {acta.file_url ? (
-                  <a href={acta.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-fii hover:underline">
+                  <a href={acta.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-fii hover:underline">
                     <Download size={16} /> Descargar PDF
                   </a>
                 ) : (
-                  <button onClick={handleRegeneratePDF} className="flex items-center gap-2 text-sm text-fii hover:underline">
+                  <button onClick={handleRegeneratePDF} className="flex items-center gap-1.5 text-sm text-fii hover:underline">
                     <Download size={16} /> Generar PDF
                   </button>
                 )}
+                <button onClick={handleDownloadWord} className="flex items-center gap-1.5 text-sm text-fii hover:underline">
+                  <FileDown size={16} /> Descargar Word
+                </button>
               </div>
             </div>
           ) : acta.file_url ? (
@@ -394,14 +423,11 @@ export default function ActaDetailPage() {
                 <Eye size={18} /> Vista Previa
               </h2>
               <div className="flex gap-2">
-                <button onClick={async () => {
-                  const blob = await generatePDFBlob()
-                  if (blob) {
-                    const url = URL.createObjectURL(blob)
-                    window.open(url, '_blank')
-                  } else toast.error('Error al generar PDF')
-                }} className="btn-primary !text-xs !px-3 !py-1.5">
+                <button onClick={handleDownloadPDF} className="btn-primary !text-xs !px-3 !py-1.5">
                   <Download size={14} /> Descargar PDF
+                </button>
+                <button onClick={handleDownloadWord} className="btn-secondary !text-xs !px-3 !py-1.5">
+                  <FileDown size={14} /> Descargar Word
                 </button>
                 <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
               </div>

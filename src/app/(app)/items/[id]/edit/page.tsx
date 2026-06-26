@@ -35,7 +35,7 @@ export default function EditItemPage() {
     if (!user) { toast.error('Debes iniciar sesión'); setSaving(false); return }
 
     const changedFields: Record<string, any> = {}
-    const trackedFields = ['cod_inv','cod_esbye','cuenta','cant','descripcion','marca','modelo','serie','fecha_adquisicion','estado','valor','ubicacion','observaciones','no_acta','mes','clasificacion_activo']
+    const trackedFields = ['cod_inv','cod_esbye','cuenta','cant','descripcion','marca','modelo','serie','fecha_adquisicion','estado','valor','ubicacion','observaciones','no_acta','servidor_asignado','clasificacion_activo','responsable_actual','ubicacion_especifica']
     trackedFields.forEach(f => {
       if (String(form[f] ?? '') !== String(original[f] ?? '')) {
         changedFields[f] = { old: original[f], new: form[f] }
@@ -82,7 +82,7 @@ export default function EditItemPage() {
             {label:'CUENTA',key:'cuenta'},{label:'CANT',key:'cant',type:'number'},{label:'MARCA',key:'marca',auto:true},
             {label:'MODELO',key:'modelo',auto:true},{label:'SERIE',key:'serie'},{label:'FECHA ADQ.',key:'fecha_adquisicion',type:'date'},
             {label:'ESTADO',key:'estado'},{label:'CLASIFICACIÓN',key:'clasificacion_activo',select:true},{label:'VALOR ($)',key:'valor',type:'number',step:'0.01'},{label:'UBICACIÓN',key:'ubicacion',auto:true},
-            {label:'No. ACTA',key:'no_acta'},{label:'COLORES / NOTAS',key:'mes'}
+            {label:'No. ACTA',key:'no_acta'},{label:'SERVIDOR ASIGNADO',key:'servidor_asignado'}
           ].map(f => (
             <div key={f.key}>
               {f.auto ? (

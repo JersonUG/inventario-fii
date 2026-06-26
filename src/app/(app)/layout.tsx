@@ -8,7 +8,7 @@ import Sidebar from '@/components/Sidebar'
 import BrandHeader from '@/components/BrandHeader'
 import { ArrowLeft } from 'lucide-react'
 
-const MAIN_PAGES = ['/dashboard', '/items', '/actas', '/historial', '/traslados', '/no-localizados']
+const MAIN_PAGES = ['/dashboard', '/items', '/actas', '/historial', '/traslados', '/no-localizados', '/archivo']
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth()

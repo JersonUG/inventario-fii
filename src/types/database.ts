@@ -15,10 +15,12 @@ export interface Item {
   ubicacion: string
   observaciones: string
   no_acta: string
-  mes: string
+  servidor_asignado: string
   is_active: boolean
   is_missing: boolean
   clasificacion_activo: string
+  responsable_actual: string
+  ubicacion_especifica: string
   created_at: string
   updated_at: string
 }

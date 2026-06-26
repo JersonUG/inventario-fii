@@ -13,6 +13,7 @@ interface InventoryItem {
   item: number
   cod_inv: string
   cod_esbye: string
+  cuenta: string
   cant: number
   descripcion: string
   marca: string
@@ -48,6 +49,8 @@ export default function EditActaPage() {
   const [invSearchInput, setInvSearchInput] = useState('')
   const [invLoading, setInvLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [filtroEstado, setFiltroEstado] = useState('')
+  const [filtroCuenta, setFiltroCuenta] = useState('')
   const totalInvPages = Math.ceil(invCount / ITEMS_PER_PAGE)
 
   useEffect(() => {
@@ -73,17 +76,23 @@ export default function EditActaPage() {
 
   const loadInventory = useCallback(async () => {
     setInvLoading(true)
-    let query = supabase.from('items').select('id,item,cod_inv,cod_esbye,cant,descripcion,marca,modelo,serie,fecha_adquisicion,estado,valor', { count: 'exact' }).eq('clasificacion_activo', 'ACTIVO')
+    let query = supabase.from('items').select('id,item,cod_inv,cod_esbye,cuenta,cant,descripcion,marca,modelo,serie,fecha_adquisicion,estado,valor', { count: 'exact' }).eq('clasificacion_activo', 'ACTIVO')
     if (invSearch) {
       query = query.or(
         `cod_inv.ilike.%${invSearch}%,cod_esbye.ilike.%${invSearch}%,descripcion.ilike.%${invSearch}%,marca.ilike.%${invSearch}%,modelo.ilike.%${invSearch}%,serie.ilike.%${invSearch}%,estado.ilike.%${invSearch}%`
       )
     }
+    if (filtroEstado) {
+      query = query.eq('estado', filtroEstado)
+    }
+    if (filtroCuenta) {
+      query = query.eq('cuenta', filtroCuenta)
+    }
     const from = (invPage - 1) * ITEMS_PER_PAGE
     const { data, count: total, error } = await query.order('item', { ascending: true }).range(from, from + ITEMS_PER_PAGE - 1)
     if (!error) { setInventory(data || []); setInvCount(total || 0) }
     setInvLoading(false)
-  }, [invPage, invSearch])
+  }, [invPage, invSearch, filtroEstado, filtroCuenta])
 
   useEffect(() => { loadInventory() }, [loadInventory])
 
@@ -278,15 +287,37 @@ export default function EditActaPage() {
               <span className="w-1 h-5 bg-fii rounded-full inline-block" />
               Ítems del Acta
             </h2>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                <input type="text" value={invSearchInput} onChange={(e) => setInvSearchInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { handleSearch() } }}
-                  placeholder="Buscar: cod_inv, cod_esbye, descripción, marca, modelo, serie, estado..."
-                  className="input-field pl-9" />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input type="text" value={invSearchInput} onChange={(e) => setInvSearchInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { handleSearch() } }}
+                    placeholder="Buscar: cod_inv, cod_esbye, descripción, marca, modelo, serie, estado..."
+                    className="input-field pl-9" />
+                </div>
+                <button type="button" onClick={handleSearch} className="px-5 py-2.5 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">Buscar</button>
               </div>
-              <button type="button" onClick={handleSearch} className="px-5 py-2.5 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">Buscar</button>
-            </div>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <select value={filtroEstado} onChange={e => { setFiltroEstado(e.target.value); setInvPage(1) }} className="input-field text-sm max-w-[160px]">
+                  <option value="">Todos los Estados</option>
+                  <option value="Bueno">Bueno</option>
+                  <option value="Regular">Regular</option>
+                  <option value="Malo">Malo</option>
+                  <option value="Reparacion">Reparación</option>
+                  <option value="Para Baja">Para Baja</option>
+                  <option value="Dado de Baja">Dado de Baja</option>
+                </select>
+                <select value={filtroCuenta} onChange={e => { setFiltroCuenta(e.target.value); setInvPage(1) }} className="input-field text-sm max-w-[200px]">
+                  <option value="">Todas las Cuentas</option>
+                  <option value="Equipos, Sistemas y P">Equipos, Sistemas y P</option>
+                  <option value="Maquinarias y Equipos">Maquinarias y Equipos</option>
+                  <option value="S/CTA">S/CTA</option>
+                </select>
+                {(filtroEstado || filtroCuenta) && (
+                  <button type="button" onClick={() => { setFiltroEstado(''); setFiltroCuenta(''); setInvPage(1) }} className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
           </div>
 
           <div className="overflow-x-auto scrollbar-thin">

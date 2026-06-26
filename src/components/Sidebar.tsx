@@ -13,6 +13,7 @@ const menuItems = [
   { href: '/items?clasificacion=PROXIMO_A_BAJA', label: 'Próximos a Baja', icon: AlertTriangle },
   { href: '/traslados', label: 'Traslados', icon: ArrowLeftRight },
   { href: '/actas', label: 'Actas', icon: FileText },
+  { href: '/archivo', label: 'Archivo Histórico', icon: Archive },
   { href: '/historial', label: 'Historial', icon: History },
 ]
 

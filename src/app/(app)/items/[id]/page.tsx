@@ -143,12 +143,20 @@ export default function ItemDetailPage() {
                 <p className="font-semibold text-gray-800 mt-1">{item.ubicacion || '-'}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded-xl">
+                <p className="text-gray-500 text-xs">RESPONSABLE ACTUAL</p>
+                <p className="font-semibold text-gray-800 mt-1">{item.responsable_actual || '-'}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <p className="text-gray-500 text-xs">UBICACIÓN ESPECÍFICA</p>
+                <p className="font-semibold text-gray-800 mt-1">{item.ubicacion_especifica || '-'}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl">
                 <p className="text-gray-500 text-xs">No. ACTA</p>
                 <p className="font-semibold text-gray-800 mt-1">{item.no_acta || '-'}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded-xl">
-                <p className="text-gray-500 text-xs">COLORES / NOTAS</p>
-                <p className="font-semibold text-gray-800 mt-1">{item.mes || '-'}</p>
+                <p className="text-gray-500 text-xs">SERVIDOR ASIGNADO</p>
+                <p className="font-semibold text-gray-800 mt-1">{item.servidor_asignado || '-'}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded-xl sm:col-span-2">
                 <p className="text-gray-500 text-xs">CLASIFICACIÓN</p>

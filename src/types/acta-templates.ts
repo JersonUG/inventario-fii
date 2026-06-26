@@ -36,6 +36,7 @@ const COMUN_CAMPOS: ActaCampo[] = [
   { key: 'DOCUMENTO_REFERENCIA', label: 'Documento de Referencia' },
   { key: 'AUTORIDAD_DOCUMENTO', label: 'Autoridad del Documento' },
   { key: 'UBICACION_BIENES', label: 'Ubicación de los Bienes' },
+  { key: 'UBICACION_ESPECIFICA', label: 'Ubicación Específica (Campus, Edificio, Aula)' },
 ]
 
 export interface ActaTemplateDef {

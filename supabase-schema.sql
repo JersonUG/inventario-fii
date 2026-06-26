@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS items (
   ubicacion TEXT DEFAULT '',
   observaciones TEXT DEFAULT '',
   no_acta TEXT DEFAULT '',
-  mes TEXT DEFAULT '',
+  servidor_asignado TEXT DEFAULT '',
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -110,6 +110,13 @@ CREATE TABLE IF NOT EXISTS transfer_log (
 CREATE INDEX IF NOT EXISTS idx_transfer_log_item ON transfer_log(item_id);
 CREATE INDEX IF NOT EXISTS idx_transfer_log_created ON transfer_log(created_at DESC);
 
+-- Columnas para sincronización acta → inventario
+ALTER TABLE items ADD COLUMN IF NOT EXISTS responsable_actual TEXT DEFAULT '';
+ALTER TABLE items ADD COLUMN IF NOT EXISTS ubicacion_especifica TEXT DEFAULT '';
+
+-- Reemplazar "mes" por "servidor_asignado"
+ALTER TABLE items ADD COLUMN IF NOT EXISTS servidor_asignado TEXT DEFAULT '';
+
 -- Columna para clasificación administrativa del activo
 ALTER TABLE items ADD COLUMN IF NOT EXISTS clasificacion_activo TEXT NOT NULL DEFAULT 'ACTIVO';
 CREATE INDEX IF NOT EXISTS idx_items_clasificacion ON items(clasificacion_activo);
@@ -139,6 +146,8 @@ DROP POLICY IF EXISTS "Allow auth insert actas" ON actas;
 CREATE POLICY "Allow auth insert actas" ON actas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 DROP POLICY IF EXISTS "Allow auth update actas" ON actas;
 CREATE POLICY "Allow auth update actas" ON actas FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow auth delete actas" ON actas;
+CREATE POLICY "Allow auth delete actas" ON actas FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Tabla de relación actas ↔ items
 CREATE TABLE IF NOT EXISTS acta_items (
@@ -277,3 +286,31 @@ ALTER PUBLICATION supabase_realtime ADD TABLE acta_history;
 ALTER PUBLICATION supabase_realtime ADD TABLE acta_items;
 ALTER PUBLICATION supabase_realtime ADD TABLE transfer_log;
 ALTER PUBLICATION supabase_realtime ADD TABLE auth_log;
+
+-- =============================================================
+-- ARCHIVO HISTÓRICO - CARPETAS PERSONALIZADAS POR AÑO
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS archivo_folders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  year TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE archivo_folders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Todos pueden leer archivo_folders" ON archivo_folders;
+CREATE POLICY "Todos pueden leer archivo_folders" ON archivo_folders FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admin y operador pueden insertar archivo_folders" ON archivo_folders;
+CREATE POLICY "Admin y operador pueden insertar archivo_folders" ON archivo_folders FOR INSERT WITH CHECK (
+  auth.role() = 'authenticated' AND EXISTS (
+    SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND rol IN ('ADMINISTRADOR', 'OPERADOR')
+  )
+);
+DROP POLICY IF EXISTS "Admin y operador pueden eliminar archivo_folders" ON archivo_folders;
+CREATE POLICY "Admin y operador pueden eliminar archivo_folders" ON archivo_folders FOR DELETE USING (
+  auth.role() = 'authenticated' AND EXISTS (
+    SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND rol IN ('ADMINISTRADOR', 'OPERADOR')
+  )
+);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE archivo_folders;

@@ -13,6 +13,20 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
   const tipoLabel = ACTA_TIPOS.find(t => t.value === tipo)?.label || tipo
   const d = (k: string) => data[k] || '____________________'
 
+  // Today's date for the first paragraph (auto)
+  const now = new Date()
+  const todayDay = now.getDate()
+  const todayMonth = now.toLocaleDateString('es-ES', { month: 'long' })
+  const todayYear = now.getFullYear()
+
+  // EL/LA helper — returns the appropriate article based on content
+  const el_la = (text: string) => {
+    const upper = (text || '').toUpperCase()
+    if (upper.startsWith('LA ') || upper.startsWith('LCDA') || upper.startsWith('LCDA.') || upper.startsWith('ING.') || upper.startsWith('AB.') || upper.startsWith('ABG') || upper.startsWith('DRA') || upper.startsWith('DRA.') || upper.startsWith('MGS') || upper.startsWith('MGS.') || upper.startsWith('MBA') || upper.startsWith('ECON') || upper.startsWith('ECON.')) return ''
+    if (upper.startsWith('ING.') || upper.startsWith('ING ')) return ''
+    return ' '
+  }
+
   const rows = items.map((item, i) => (
     <tr key={item.id || i}>
       <td style={tdStyle}>{i + 1}</td>
@@ -29,31 +43,36 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
     </tr>
   ))
 
+  const getSubtitle = () => {
+    const base = `ACTA DE CONSTATACIÓN FÍSICA Y ENTREGA RECEPCIÓN DE BIENES DE USUARIO FINAL ENTRE ${d('NOMBRE_ADMINISTRADOR')}, ${d('CARGO_ADMINISTRADOR')} Y ${d('NOMBRE_USUARIO_FINAL')}, ${d('CARGO_USUARIO_FINAL')}, CON FECHA DE CORTE AL ${d('FECHA_DIA')} DE ${d('FECHA_MES')} DE ${d('FECHA_ANIO')}`
+    return base
+  }
+
   const getAntecedentes = () => {
     switch (tipo) {
       case 'ENTREGA_ADMIN':
-        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se acepta la ${d('TIPO_RENUNCIA')} del ${d('CARGO_USUARIO')}, del ${d('NOMBRE_USUARIO_FINAL')}, efectiva a partir del ${d('FECHA_EFECTIVA')}. En tal virtud, se procede a realizar la entrega recepción de los bienes asignados a dicho usuario.`
+        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se comunica la aceptación de la renuncia de ${d('NOMBRE_USUARIO_FINAL')}, quien se desempeñaba como ${d('CARGO_USUARIO')}, efectiva a partir del ${d('FECHA_EFECTIVA')}. En tal virtud, ${d('NOMBRE_ADMINISTRADOR')} procede a realizar la entrega recepción de los bienes asignados a dicho usuario.`
       case 'ASIGNACION_USUARIO':
-        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se designa al ${d('NOMBRE_USUARIO_FINAL')} como ${d('CARGO_USUARIO')}, a partir del ${d('FECHA_EFECTIVA')}. En tal virtud, se procede a realizar la entrega recepción de los bienes asignados para el desempeño de sus funciones.`
+        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se autoriza la entrega de bienes a ${d('NOMBRE_USUARIO_FINAL')}, ${d('CARGO_USUARIO_FINAL')}, para el cumplimiento de sus funciones en ${d('UBICACION_BIENES')}. En tal virtud, ${d('NOMBRE_ADMINISTRADOR')} deja constancia de la entrega de los bienes detallados en la cláusula tercera.`
       case 'RECEPCION_BODEGA':
-        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se dispone la recepción de los bienes detallados en la cláusula tercera, provenientes de ${d('NOMBRE_ENTREGA')} / ${d('AREA_ORIGEN')}, a la Bodega / Administración de la Facultad de Ingeniería Industrial.`
+        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se dispone la recepción de los bienes detallados en la cláusula tercera, provenientes de ${d('NOMBRE_ENTREGA')} / ${d('AREA_ORIGEN')}, a la Bodega de la Facultad de Ingeniería Industrial.`
       case 'CONSTATACION_FISICA':
-        return `En cumplimiento a lo dispuesto por ${d('AUTORIDAD_DOCUMENTO')}, se realiza la constatación física de los bienes asignados al ${d('NOMBRE_USUARIO_FINAL')}, con la finalidad de verificar su estado y ubicación actual.`
+        return `En cumplimiento a lo dispuesto por ${d('AUTORIDAD_DOCUMENTO')}, se realiza la constatación física de los bienes asignados a ${d('NOMBRE_USUARIO_FINAL')}, ${d('CARGO_USUARIO_FINAL')}, con la finalidad de verificar su estado y ubicación actual en ${d('UBICACION_BIENES')}.`
       case 'ENTREGA_RECEPCION_CONSTATACION':
-        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, se procede a la entrega recepción de los bienes detallados en la cláusula tercera, asignados al ${d('NOMBRE_USUARIO_FINAL')}, con la finalidad de verificar su estado y ubicación actual.`
+        return `Mediante ${d('DOCUMENTO_REFERENCIA')} suscrito por ${d('AUTORIDAD_DOCUMENTO')}, ${d('NOMBRE_USUARIO_FINAL')}, ${d('CARGO_USUARIO_FINAL')}, realiza la entrega de los bienes detallados en la cláusula tercera a la Administración de la Facultad de Ingeniería Industrial, con la finalidad de verificar su estado y ubicación actual.`
     }
   }
 
   const getTerceraDescripcion = () => {
     switch (tipo) {
       case 'ENTREGA_ADMIN':
-        return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes que el ${d('NOMBRE_USUARIO_FINAL')} entrega a la Administración de la Facultad de Ingeniería Industrial, ubicados en ${d('UBICACION_BIENES')}.`
+        return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes que ${d('NOMBRE_USUARIO_FINAL')} entrega a la Administración de la Facultad de Ingeniería Industrial, ubicados en ${d('UBICACION_BIENES')}.`
       case 'ASIGNACION_USUARIO':
-        return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes que la Administración de la Facultad de Ingeniería Industrial entrega al ${d('NOMBRE_USUARIO_FINAL')}, ubicados en ${d('UBICACION_BIENES')}.`
+        return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes que la Administración de la Facultad de Ingeniería Industrial entrega a ${d('NOMBRE_USUARIO_FINAL')}, ubicados en ${d('UBICACION_BIENES')}.`
       case 'RECEPCION_BODEGA':
         return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes recibidos en la Bodega de la Facultad de Ingeniería Industrial, provenientes de ${d('UBICACION_BIENES')}.`
       case 'CONSTATACION_FISICA':
-        return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes constatados físicamente en ${d('UBICACION_BIENES')}, pertenecientes al ${d('NOMBRE_USUARIO_FINAL')}.`
+        return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes constatados físicamente en ${d('UBICACION_BIENES')}, pertenecientes a ${d('NOMBRE_USUARIO_FINAL')}.`
       case 'ENTREGA_RECEPCION_CONSTATACION':
         return `Con los antecedentes expuestos en la cláusula anterior, se procede a detallar los bienes que se entregan, reciben y constatan, ubicados en ${d('UBICACION_BIENES')}.`
     }
@@ -62,15 +81,15 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
   const getQuinta = () => {
     switch (tipo) {
       case 'ENTREGA_ADMIN':
-        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_USUARIO_FINAL')} como ENTREGA, y el ${d('NOMBRE_ADMINISTRADOR')} como RECIBE.`
+        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_USUARIO_FINAL')} como ENTREGA, y ${d('NOMBRE_ADMINISTRADOR')} como RECIBE.`
       case 'ASIGNACION_USUARIO':
-        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, el ${d('NOMBRE_ADMINISTRADOR')} como ENTREGA, y ${d('NOMBRE_USUARIO_FINAL')} como RECIBE.`
+        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_ADMINISTRADOR')} como ENTREGA, y ${d('NOMBRE_USUARIO_FINAL')} como RECIBE.`
       case 'RECEPCION_BODEGA':
-        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_ENTREGA')} como ENTREGA, y el ${d('NOMBRE_ADMINISTRADOR')} como RECIBE.`
+        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_ENTREGA')} como ENTREGA, y ${d('NOMBRE_ADMINISTRADOR')} como RECIBE.`
       case 'CONSTATACION_FISICA':
         return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_ADMINISTRADOR')} y ${d('NOMBRE_USUARIO_FINAL')}.`
       case 'ENTREGA_RECEPCION_CONSTATACION':
-        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, el ${d('NOMBRE_ADMINISTRADOR')} como ENTREGA CONFORME y el ${d('NOMBRE_USUARIO_FINAL')} como RECIBE CONFORME.`
+        return `Para constancia de lo actuado, suscriben la presente acta en 3 ejemplares de igual tenor y efecto, ${d('NOMBRE_ADMINISTRADOR')} como ENTREGA CONFORME y ${d('NOMBRE_USUARIO_FINAL')} como RECIBE CONFORME.`
     }
   }
 
@@ -146,12 +165,12 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
           ACTA No. {d('NUMERO_ACTA')}
         </p>
         <p style={{ margin: 0, fontWeight: 'bold', fontSize: '12px' }}>
-          ACTA DE CONSTATACION FISICA Y ENTREGA RECEPCION DE BIENES DE USUARIO FINAL ENTRE {d('NOMBRE_ADMINISTRADOR')}, {d('CARGO_ADMINISTRADOR')} Y {d('NOMBRE_USUARIO_FINAL')}, {d('CARGO_USUARIO_FINAL')}, CON FECHA DE CORTE AL {d('FECHA_DIA')} DE {d('FECHA_MES')} DE {d('FECHA_ANIO')}
+          {getSubtitle()}
         </p>
       </div>
 
       <p style={pStyle}>
-        En la ciudad de Guayaquil, a los {d('FECHA_DIA')} días del mes de {d('FECHA_MES')} del año {d('FECHA_ANIO')}, se suscribe la presente Acta de constatación física y entrega recepción de Bienes de Usuario Final entre {d('NOMBRE_ADMINISTRADOR')} en calidad de {d('CARGO_ADMINISTRADOR')} y {d('NOMBRE_USUARIO_FINAL')} en calidad de {d('CARGO_USUARIO_FINAL')}.
+        En la ciudad de Guayaquil, a los {todayDay} días del mes de {todayMonth} del año {todayYear}, se suscribe la presente Acta de constatación física y entrega recepción de Bienes de Usuario Final entre {d('NOMBRE_ADMINISTRADOR')} en calidad de {d('CARGO_ADMINISTRADOR')} y {d('NOMBRE_USUARIO_FINAL')} en calidad de {d('CARGO_USUARIO_FINAL')}.
       </p>
 
       <p style={{ ...pStyle, fontWeight: 'bold' }}>
@@ -230,11 +249,6 @@ export default function ActaTemplate({ tipo, data, items, preview }: Props) {
         </tbody>
       </table>
 
-      {preview && (
-        <div style={{ textAlign: 'center', marginTop: 30, padding: 10, background: '#fef3c7', borderRadius: 8, fontSize: '11px', color: '#92400e' }}>
-          ⚠️ Vista previa — el PDF final se generará al guardar
-        </div>
-      )}
       </div>
 
       <div style={{ width: '20.99cm', height: '2.01cm', margin: '-0.5px auto 0' }}>

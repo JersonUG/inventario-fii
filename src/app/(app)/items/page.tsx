@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRealtime } from '@/hooks/useRealtime'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import * as XLSX from 'xlsx'
 import { CLASIFICACION_OPTIONS } from '@/types/database'
 
 const ITEMS_PER_PAGE = 50
@@ -46,7 +45,7 @@ function ItemsPageContent() {
 
     if (search) {
       query = query.or(
-        `cod_inv.ilike.%${search}%,descripcion.ilike.%${search}%,serie.ilike.%${search}%,marca.ilike.%${search}%,modelo.ilike.%${search}%,ubicacion.ilike.%${search}%,observaciones.ilike.%${search}%,no_acta.ilike.%${search}%,cod_esbye.ilike.%${search}%,mes.ilike.%${search}%`
+        `cod_inv.ilike.%${search}%,descripcion.ilike.%${search}%,serie.ilike.%${search}%,marca.ilike.%${search}%,modelo.ilike.%${search}%,ubicacion.ilike.%${search}%,observaciones.ilike.%${search}%,no_acta.ilike.%${search}%,cod_esbye.ilike.%${search}%,servidor_asignado.ilike.%${search}%`
       )
     }
     Object.entries(filters).forEach(([key, value]) => {
@@ -117,35 +116,44 @@ function ItemsPageContent() {
 
   const handleExport = async () => {
     setExporting(true)
-    const { data: allItems, error } = await supabase.from('items')
-      .select('item,cod_inv,cod_esbye,cuenta,cant,descripcion,marca,modelo,serie,fecha_adquisicion,estado,valor,ubicacion,observaciones,no_acta,mes,clasificacion_activo')
-      .order('item', { ascending: true })
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) { toast.error('Sesión expirada'); setExporting(false); return }
 
-    if (error || !allItems) { toast.error('Error al exportar'); setExporting(false); return }
+      const res = await fetch('/api/export/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          clasificacion: clasificacionFilter,
+          search,
+          filters,
+        }),
+      })
 
-    const ws = XLSX.utils.json_to_sheet(allItems.map(i => ({
-      ITEM: i.item,
-      'COD. INV': i.cod_inv,
-      'COD. ESBYE': i.cod_esbye,
-      CUENTA: i.cuenta,
-      CANT: i.cant,
-      DESCRIPCIÓN: i.descripcion,
-      MARCA: i.marca,
-      MODELO: i.modelo,
-      SERIE: i.serie,
-      'FECHA ADQ.': i.fecha_adquisicion,
-      ESTADO: i.estado,
-      'VALOR ($)': i.valor,
-      UBICACIÓN: i.ubicacion,
-      OBSERVACIONES: i.observaciones,
-      'No. ACTA': i.no_acta,
-      'COLORES / NOTAS': i.mes,
-      CLASIFICACIÓN: i.clasificacion_activo,
-    })))
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Inventario')
-    XLSX.writeFile(wb, `Inventario_FII_${new Date().toISOString().split('T')[0]}.xlsx`)
-    toast.success(`Exportados ${allItems.length} registros`)
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(err.error || 'Error al exportar')
+        setExporting(false)
+        return
+      }
+
+      const blob = await res.blob()
+      const totalCount = res.headers.get('X-Total-Count') || '?'
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Inventario_FII_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success(`Exportados ${totalCount} registros (${clasificacionFilter || 'todos'})`)
+    } catch (e: any) {
+      toast.error('Error al exportar: ' + e.message)
+    }
     setExporting(false)
   }
 
@@ -302,7 +310,7 @@ function ItemsPageContent() {
                 <th className="table-header">UBICACIÓN</th>
                 <th className="table-header">OBSERVACIONES</th>
                 <th className="table-header">No. ACTA</th>
-                <th className="table-header">COLORES / NOTAS</th>
+                <th className="table-header">SERVIDOR ASIGNADO</th>
                 <th className="table-header">CLASIFICACIÓN</th>
                 <th className="table-header sticky right-0 bg-gradient-to-r from-ug to-fii z-10">ACCIONES</th>
               </tr>
@@ -339,7 +347,7 @@ function ItemsPageContent() {
                   <td className="table-cell max-w-[150px] truncate" title={item.ubicacion}>{item.ubicacion || '-'}</td>
                   <td className="table-cell max-w-[150px] truncate text-gray-500" title={item.observaciones}>{item.observaciones || '-'}</td>
                   <td className="table-cell max-w-[150px] truncate text-gray-500" title={item.no_acta}>{item.no_acta || '-'}</td>
-                  <td className="table-cell max-w-[200px] truncate text-gray-500" title={item.mes}>{item.mes || '-'}</td>
+                  <td className="table-cell max-w-[200px] truncate text-gray-500" title={item.servidor_asignado}>{item.servidor_asignado || '-'}</td>
                   <td className="table-cell">
                     <span className={`badge ${getClasificacionBadge(item.clasificacion_activo)}`}>
                       {CLASIFICACION_OPTIONS.find(o => o.value === item.clasificacion_activo)?.label || item.clasificacion_activo}
